@@ -19,7 +19,9 @@ $$
 
 
 
-* W、V：
+
+
+* W, V：
   * parameters of FM
 
 ## objectives
@@ -33,8 +35,10 @@ $$
 * partial derivative
 
   * $$
-    \frac{\partial\hat{y}(x)}{\partial\theta}=\begin{cases} \gamma(x)_j  & if \ \theta \ is \ W_{j0} \\ \gamma(x)_jx_l &  if \ \theta \ is \ W_{jl} \\ \gamma(x)_jx_l \sum_{j \neq l}v_{j,f} & if \ \theta \ is V_{j,l,f}\end{cases}
+    \frac{\partial\hat{y}(x)}{\partial\theta}=\begin{cases} \gamma(x)_j  & if \ \theta \ is \ W_{j0} \\ \gamma(x)_jx_l &  if \ \theta \ is \ W_{jl} \\ \gamma(x)_jx_l \sum_{j \neq l}v_{j,f}x_j & if \ \theta \ is V_{j,l,f}\end{cases}
     $$
+
+
 
 
 

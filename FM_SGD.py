@@ -8,7 +8,8 @@ class FM_SGD:
                  iter_num,
                  learning_rate,
                  factors_num,
-                 reg,
+                 reg_w,
+                 reg_v,
                  verbose=True):
 
         # 迭代次数
@@ -21,7 +22,9 @@ class FM_SGD:
         self.factors_num = factors_num
 
         # lambda
-        self.reg = reg
+        self.reg_w = reg_w
+
+        self.reg_v = reg_v
 
         # 输出执行信息
         self.verbose = verbose
@@ -49,7 +52,7 @@ class FM_SGD:
         self.mse = []
 
         # global bias
-        self.w0 = sum(np.random.rand(1, 1))  # bias
+        self.w0 = np.sum(np.random.rand(1, 1))  # bias
 
         # feature bias
         self.W = np.random.rand(1, p)
@@ -71,7 +74,7 @@ class FM_SGD:
 
             for i in xrange(n):
 
-                if self.verbose and i % 1000 == 0:
+                if self.verbose and i % 10000 == 0:
                     print 'processing ' + str(i) + 'th sample...'
 
                 X = X_train[i, :]
@@ -80,12 +83,12 @@ class FM_SGD:
                 # too slow
                 #     y_predict = (w0 + W*X.T + ((X.T*X).multiply((np.triu(V.dot(V.T),1)))).sum().sum())[0,0]
 
-                tmp = np.sum(X.T.multiply(self.V), axis=0)
-                factor_part = (np.sum(np.multiply(tmp, tmp)) - np.sum(
-                    (X.T.multiply(X.T)).multiply(np.multiply(self.V, self.V)))) / 2
-                y_predict = self.w0 + np.sum(self.W * X.T) + factor_part
+                X = X.toarray()
 
-                #                 print y_predict
+                tmp = np.sum(X.T * self.V, axis=0)
+                factor_part = (np.sum(tmp * tmp) - np.sum(
+                    (X.T*X.T)*(self.V * self.V))) / 2
+                y_predict = self.w0 + np.sum(np.dot(self.W, X.T)) + factor_part
 
                 # prune
                 if y_predict < self.y_min:
@@ -101,14 +104,14 @@ class FM_SGD:
                 self.mse.append(sum(loss_sgd) / len(loss_sgd))
 
                 # update w0
-                self.w0 -= self.learning_rate * (2 * diff * 1 + 2*self.reg*self.w0)
+                self.w0 -= self.learning_rate * (2 * diff * 1 + 2*self.reg_w*self.w0)
 
                 # update W
-                self.W -= self.learning_rate * (2 * diff * X + 2*self.reg*self.W)
+                self.W -= self.learning_rate * (2 * diff * X + 2*self.reg_w*self.W)
 
                 # update V
                 self.V -= self.learning_rate * (2 * diff * (
-                    X.T.multiply((np.tile(X * self.V, (p, 1)) - X.T.multiply(self.V)))) + 2*self.reg*self.V)
+                    X.T * (np.dot(X, self.V) - X.T * self.V)) + 2 * self.reg_v * self.V)
 
     def validate(self, X_, y_):
         (n, p) = X_.shape
@@ -130,7 +133,7 @@ class FM_SGD:
             tmp = np.sum(X.T.multiply(self.V), axis=0)
             factor_part = (np.sum(np.multiply(tmp, tmp)) - np.sum(
                 (X.T.multiply(X.T)).multiply(np.multiply(self.V, self.V)))) / 2
-            y_predict = self.w0 + np.sum(self.W * X.T) + factor_part
+            y_predict = self.w0 + self.W * X.T + factor_part
 
             #                 print y_predict
 

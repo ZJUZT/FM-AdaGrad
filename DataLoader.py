@@ -2,7 +2,7 @@ import numpy as np
 
 
 # Read in data
-def load_data(filename, path="../ml-100k/"):
+def load_data(filename, path="ml-100k/"):
     data = []
     y = []
     users = set()

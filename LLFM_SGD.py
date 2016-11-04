@@ -3,6 +3,7 @@ import math
 
 import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
 
 
 class LLFM_SGD:
@@ -10,7 +11,8 @@ class LLFM_SGD:
                  iter_num,
                  learning_rate,
                  factors_num,
-                 reg,
+                 reg_w,
+                 reg_v,
                  anchor_num,
                  neighbor_num,
                  verbose=True):
@@ -25,7 +27,9 @@ class LLFM_SGD:
         self.factors_num = factors_num
 
         # lambda
-        self.reg = reg
+        self.reg_w = reg_w
+
+        self.reg_v = reg_v
 
         # 输出执行信息
         self.verbose = verbose
@@ -87,7 +91,10 @@ class LLFM_SGD:
 
         # K-means get anchor points
 
-        kmeans = KMeans(n_clusters=self.anchor_num, random_state=0).fit(X_)
+        # kmeans = KMeans(n_clusters=self.anchor_num, random_state=0).fit(X_)
+
+        # mini batch
+        kmeans = MiniBatchKMeans(n_clusters=self.anchor_num, random_state=0).fit(X_)
         self.anchor_points = kmeans.cluster_centers_
 
         if self.verbose:
@@ -112,13 +119,28 @@ class LLFM_SGD:
 
                 (gamma, idx) = self.knn(X)
 
+                X = X.toarray()
+
                 # if self.verbose:
                 #     print 'k-nearest neighbors found...'
 
-                tmp = np.sum(X.T.multiply(self.V), axis=0)
-                factor_part = (np.sum(np.multiply(tmp, tmp)) - np.sum(
-                    (X.T.multiply(X.T)).multiply(np.multiply(self.V, self.V)))) / 2
-                y_predict = np.dot(gamma, self.w0[idx]) + np.dot(gamma, np.dot(self.W[idx, :], X.toarray().T)) + factor_part
+                # reshape V to 2-dimension
+
+                # V = self.V[idx, :, :].reshape(self.neighbor_num*p, self.factors_num)
+
+                # X_repmat = np.tile(X.toarray(), (self.neighbor_num, 1))
+
+                factor_part = 0.0
+
+                for k in xrange(self.neighbor_num):
+                    tmp = np.sum(X.T * self.V[k], axis=0)
+
+                    factor_part += gamma[k] * (np.sum(tmp * tmp) - np.sum(
+                        (X.T * X.T) * (self.V[idx[k]] * self.V[idx[k]]))) / 2
+
+                y_predict = np.sum(
+                    np.dot(np.array([gamma]), self.w0[idx, :]) + np.dot(np.array([gamma]),
+                                                                        np.dot(self.W[idx, :], X.T)) + factor_part)
 
                 # prune
                 if y_predict < self.y_min:
@@ -134,15 +156,18 @@ class LLFM_SGD:
                 self.mse.append(sum(loss_sgd) / len(loss_sgd))
 
                 # update w0
-                gamma = np.array([gamma])
-                self.w0[idx, :] -= self.learning_rate * 2 * diff * gamma.T
+                self.w0[idx, :] -= np.dot(gamma, self.learning_rate * (2 * diff * 1 + 2 * self.reg_w * self.w0[idx, :]))
 
                 # update W
-                self.W[idx, :] -= self.learning_rate * 2 * diff * np.dot(gamma.T, X.toarray())
+                self.W[idx, :] -= np.dot(gamma, self.learning_rate * (2 * diff * X + 2 * self.reg_w * self.W[idx, :]))
 
                 # update V
-                self.V -= self.learning_rate * 2 * diff * (
-                    X.T.multiply((np.tile(X * self.V, (p, 1)) - X.T.multiply(self.V))))
+                for k in xrange(self.neighbor_num):
+                    self.V[idx[k]] -= gamma[k] * self.learning_rate * (2 * diff * (
+                        X.T * (np.dot(X, self.V[idx[k]]) - X.T * self.V[idx[k]])) + 2 * self.reg_v * self.V[idx[k]])
+
+                # self.V -= gamma * self.learning_rate * (2 * diff * (
+                #         X.T * (np.dot(X, self.V[idx]) - X.T * self.V[idx])) + 2 * self.reg_v * self.V[idx])
 
     def validate(self, x_, y_):
         (n, p) = x_.shape
