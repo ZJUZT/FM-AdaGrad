@@ -4,6 +4,7 @@ import math
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.cluster import MiniBatchKMeans
+import time
 
 
 class LLFM_SGD:
@@ -35,13 +36,13 @@ class LLFM_SGD:
         self.verbose = verbose
 
         # global bias
-        self.w0 = 0
+        self.w0 = np.array([0])
 
         # feature bias
-        self.W = 0
+        self.W = np.array([0])
 
         # feature
-        self.V = 0
+        self.V = np.array([0])
 
         # 训练过程中的mse
         self.mse = []
@@ -109,9 +110,13 @@ class LLFM_SGD:
             x_train = X_[re_idx, :]
             y_train = y_[re_idx]
 
+            start_time = time.time()
             for i in xrange(n):
 
                 if self.verbose and i % 1000 == 0:
+                    end_time = time.time()
+                    print '---%s-- seconds' % (end_time - start_time)
+                    start_time = end_time
                     print 'processing ' + str(i) + 'th sample...'
 
                 X = x_train[i, :]
@@ -137,6 +142,12 @@ class LLFM_SGD:
 
                     factor_part += gamma[k] * (np.sum(tmp * tmp) - np.sum(
                         (X.T * X.T) * (self.V[idx[k]] * self.V[idx[k]]))) / 2
+
+                # X_repmat = np.tile(X.T, (self.neighbor_num, 1, 1))
+                # tmp = np.sum(X_repmat * self.V[idx], axis=1)
+                #
+                # factor_part = np.dot(gamma, (np.sum(tmp * tmp, axis=1) - np.sum(np.sum(
+                #     (X_repmat * X_repmat) * (self.V[idx] * self.V[idx]), axis=2), axis=1)) / 2)
 
                 y_predict = np.sum(
                     np.dot(np.array([gamma]), self.w0[idx, :]) + np.dot(np.array([gamma]),
@@ -166,27 +177,43 @@ class LLFM_SGD:
                     self.V[idx[k]] -= gamma[k] * self.learning_rate * (2 * diff * (
                         X.T * (np.dot(X, self.V[idx[k]]) - X.T * self.V[idx[k]])) + 2 * self.reg_v * self.V[idx[k]])
 
+                # self.V[idx] -= gamma[:, np.newaxis, np.newaxis] * self.learning_rate * (2 * diff * (
+                #     X_repmat * (np.sum(X_repmat * self.V[idx], axis=1)[:, np.newaxis, :] - X_repmat * self.V[
+                #         idx]))) + 2 * self.reg_v * self.V[idx]
+
                 # self.V -= gamma * self.learning_rate * (2 * diff * (
                 #         X.T * (np.dot(X, self.V[idx]) - X.T * self.V[idx])) + 2 * self.reg_v * self.V[idx])
 
-    def validate(self, x_, y_):
-        (n, p) = x_.shape
+    def validate(self, X_, y_):
+        (n, p) = X_.shape
+        loss_sgd = 0.0
 
-        mse = []
-        loss_sgd = []
-
+        start_time = time.time()
         for i in xrange(n):
 
             if self.verbose and i % 1000 == 0:
+                end_time = time.time()
+                print '---%s-- seconds' % (end_time - start_time)
+                start_time = end_time
                 print 'processing ' + str(i) + 'th sample...'
 
-            x = x_[i, :]
+            X = X_[i, :]
             y = y_[i]
 
-            tmp = np.sum(x.T.multiply(self.V), axis=0)
-            factor_part = (np.sum(np.multiply(tmp, tmp)) - np.sum(
-                (x.T.multiply(x.T)).multiply(np.multiply(self.V, self.V)))) / 2
-            y_predict = self.w0 + np.sum(self.W * x.T) + factor_part
+            (gamma, idx) = self.knn(X)
+
+            X = X.toarray()
+
+            factor_part = 0.0
+            for k in xrange(self.neighbor_num):
+                    tmp = np.sum(X.T * self.V[k], axis=0)
+
+                    factor_part += gamma[k] * (np.sum(tmp * tmp) - np.sum(
+                        (X.T * X.T) * (self.V[idx[k]] * self.V[idx[k]]))) / 2
+
+            y_predict = np.sum(
+                np.dot(np.array([gamma]), self.w0[idx, :]) + np.dot(np.array([gamma]),
+                                                                    np.dot(self.W[idx, :], X.T)) + factor_part)
 
             # prune
             if y_predict < self.y_min:
@@ -195,9 +222,6 @@ class LLFM_SGD:
             if y_predict > self.y_max:
                 y_predict = self.y_max
 
-            diff = y_predict - y
-            loss_sgd.append(math.pow(diff, 2))
-
-            # update mse
-            mse.append(sum(loss_sgd) / len(loss_sgd))
-        return mse
+            diff = np.sum(y_predict - y)
+            loss_sgd += math.pow(diff, 2)
+        return loss_sgd/n

@@ -33,7 +33,7 @@ class FM_SGD:
         self.w0 = 0
 
         # feature bias
-        self.W = 0
+        self.W = np.array([0])
 
         # feature
         self.V = 0
@@ -114,39 +114,40 @@ class FM_SGD:
                     X.T * (np.dot(X, self.V) - X.T * self.V)) + 2 * self.reg_v * self.V)
 
     def validate(self, X_, y_):
-        (n, p) = X_.shape
-
-        mse = []
-        loss_sgd = []
-
-        for i in xrange(n):
-
-            if self.verbose and i % 1000 == 0:
-                print 'prossing ' + str(i) + 'th sample...'
-
-            X = X_[i, :]
-            y = y_[i]
-
-            # too slow
-            #     y_predict = (w0 + W*X.T + ((X.T*X).multiply((np.triu(V.dot(V.T),1)))).sum().sum())[0,0]
-
-            tmp = np.sum(X.T.multiply(self.V), axis=0)
-            factor_part = (np.sum(np.multiply(tmp, tmp)) - np.sum(
-                (X.T.multiply(X.T)).multiply(np.multiply(self.V, self.V)))) / 2
-            y_predict = self.w0 + self.W * X.T + factor_part
-
-            #                 print y_predict
-
-            # prune
-            if y_predict < self.y_min:
-                y_predict = self.y_min
-
-            if y_predict > self.y_max:
-                y_predict = self.y_max
-
-            diff = y_predict - y
-            loss_sgd.append(math.pow(diff, 2))
-
-            # update mse
-            mse.append(sum(loss_sgd) / len(loss_sgd))
-        return mse
+        return (self.w0 + X_*self.W.T - y_.T)**2/y_.shape[0]
+        # (n, p) = X_.shape
+        #
+        # mse = []
+        # loss_sgd = []
+        #
+        # for i in xrange(n):
+        #
+        #     if self.verbose and i % 1000 == 0:
+        #         print 'processing ' + str(i) + 'th sample...'
+        #
+        #     X = X_[i, :]
+        #     y = y_[i]
+        #
+        #     # too slow
+        #     #     y_predict = (w0 + W*X.T + ((X.T*X).multiply((np.triu(V.dot(V.T),1)))).sum().sum())[0,0]
+        #
+        #     tmp = np.sum(X.T.multiply(self.V), axis=0)
+        #     factor_part = (np.sum(np.multiply(tmp, tmp)) - np.sum(
+        #         (X.T.multiply(X.T)).multiply(np.multiply(self.V, self.V)))) / 2
+        #     y_predict = self.w0 + self.W * X.T + factor_part
+        #
+        #     #                 print y_predict
+        #
+        #     # prune
+        #     if y_predict < self.y_min:
+        #         y_predict = self.y_min
+        #
+        #     if y_predict > self.y_max:
+        #         y_predict = self.y_max
+        #
+        #     diff = y_predict - y
+        #     loss_sgd.append(math.pow(diff, 2))
+        #
+        #     # update mse
+        #     mse.append(sum(loss_sgd) / len(loss_sgd))
+        # return mse

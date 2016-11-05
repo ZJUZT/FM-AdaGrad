@@ -14,20 +14,23 @@ if __name__ == '__main__':
     X_test = v.transform(test_data)
     start_time = time.time()
 
-    llfm_sgd = LLFM_SGD(iter_num=1,
-                        learning_rate=0.1,
-                        factors_num=10,
-                        reg_w=0.1,
-                        reg_v=0.01,
-                        anchor_num=5,
-                        neighbor_num=2
-                        )
-    llfm_sgd.train(X_train, y_train)
+    # llfm_sgd = LLFM_SGD(iter_num=1,
+    #                     learning_rate=0.1,
+    #                     factors_num=10,
+    #                     reg_w=0.1,
+    #                     reg_v=0.01,
+    #                     anchor_num=100,
+    #                     neighbor_num=10
+    #                     )
+    # llfm_sgd.train(X_train, y_train)
 
     #
-    # fm_sgd = FM_SGD(iter_num=1,
-    #                 learning_rate=0.01,
-    #                 factors_num=10,
-    #                 reg=0.1)
-    # fm_sgd.train(X_train, y_train)
+    fm_sgd = FM_SGD(iter_num=1,
+                    learning_rate=0.01,
+                    factors_num=10,
+                    reg_w=0.01,
+                    reg_v=0.001
+                    )
+    fm_sgd.train(X_train, y_train)
+    print fm_sgd.validate(X_test, y_test)
     print '----%s seconds-----' % (time.time() - start_time)
