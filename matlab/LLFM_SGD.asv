@@ -19,8 +19,8 @@ anchors_num = 100;
 % knn
 nearest_neighbor = 10;
 
-w0 = rand(1, anchors_num);
-W = rand(p,anchors_num);
+w0 = rand(anchors_num,1);
+W = rand(anchors_num,p);
 V = rand(p,factors_num,anchors_num);
 
 mse = zeros(1,iter_num*num_sample);
@@ -52,21 +52,21 @@ for i=1:iter_num
         % pick anchor points
         [anchor_idx, gamma] = knn(anchors, X, nearest_neighbor);
         
-        factor_part = 0.0;
-        for k=1:nearest_neighbor
-            temp_V = squeeze(V(:,:,anchor_idx(k)));
-            tmp = sum(repmat(X',1,factors_num).*temp_V);
-            factor_part = factor_part + gamma(k)*(sum(tmp.^2) - sum(sum(repmat(X'.^2,1,factors_num).*(temp_V.^2))))/2;
-        end
+%         factor_part = 0.0;
+%         for k=1:nearest_neighbor
+%             temp_V = squeeze(V(anchor_idx(k),:,:));
+%             tmp = sum(repmat(X',1,factors_num).*temp_V);
+%             factor_part = factor_part + gamma(k)*(sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(temp_V.^2))))/2;
+%         end
 
-%         temp_V = V(:,:,anchor_idx);
-%         X_ = repmat(X', [1, factors_num, nearest_neighbor]);
-%         tmp = X_.*temp_V;
-%         factor_part = gamma * (squeeze(sum(sum(tmp.^2,1),2) -(sum(sum((X_.^2).*(temp_V.*2),1),2))));
+        temp_V = V(:,:,anchor_idx);
+        X_ = repmat(X', [1, factors_num, nearest_neighbor]);
+        tmp = X_.*temp_V;
+        factor_part = gamma * (squeeze(sum(sum(tmp.^2,1),2)) - squeeze(sum(sum((X_.^2).*(temp_V.*2),1),2)));
         
         
         
-        y_predict = sum(w0(anchor_idx)) + sum(X*W(:,anchor_idx)) + factor_part;
+        y_predict = sum(w0(anchor_idx)) + sum(W(anchor_idx,:)*X') + factor_part;
         
 %         fprintf('%f\n', y_predict);
         
@@ -86,18 +86,17 @@ for i=1:iter_num
         mse(idx) = sum(loss)/idx;
         
         % update parameters
-        tmp_w0 = w0(anchor_idx);
-        w0(anchor_idx) = tmp_w0 - learning_rate * gamma .* (2 * err + 2*reg_w*tmp_w0);
-        tmp_W = W(:,anchor_idx);
-        W(:,anchor_idx) = tmp_W - learning_rate * repmat(gamma,p,1) .* (2*err*repmat(X',[1,nearest_neighbor]) + 2*reg_w*tmp_W);
+        w0(anchor_idx) = w0(anchor_idx) - learning_rate * gamma' .* (2 * err + 2*reg_w*w0(anchor_idx));
+        W(anchor_idx,:) = W(anchor_idx,:) - learning_rate * repmat(gamma',1,p) .* (2*err*repmat(X,[nearest_neighbor, 1]) + 2*reg_w*W(anchor_idx,:));
         
-        for k=1:nearest_neighbor
-            temp_V = squeeze(V(:,:,anchor_idx(k)));
-            V(:,:,anchor_idx(k)) = temp_V - learning_rate * gamma(k) * (2*err*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)) + 2*reg_v*squeeze(temp_V));
-        end
+%         for k=1:nearest_neighbor
+%             temp_V = squeeze(V(:,:,anchor_idx(k)));
+%             V(:,:,anchor_idx(k)) = temp_V - learning_rate * gamma(k) * (2*err*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)) + 2*reg_v*squeeze(temp_V));
+%         end
         
-%         V(:,:,anchor_idx) = temp_V - learning_rate * ...
-%             (2 * err * repmat(gamma,p,1,nearest_neighbor) .* X_ .*(repmat(sum(tmp,1),p,1,1)-tmp)  + 2*reg_v*temp_V);
+        t
+        V(:,:,anchor_idx) = V(:,:,anchor_idx) - learning_rate * repmat(gamma,p,1,nearest_neighbor)...
+            *(2 * err * X_ .*()  + 2*reg_w*W(anchor_idx,:));
         
 %         V = V - learning_rate * (2*err*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',[nearest_neighbor, 1,factors_num]).*V)) + 2*reg_v*V);
     end

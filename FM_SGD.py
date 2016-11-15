@@ -38,18 +38,21 @@ class FM_SGD:
         # feature
         self.V = 0
 
-        # 训练过程中的mse
-        self.mse = []
+        # 训练过程中的rmse
+        self.rmse_train = []
+
+        # test data 上的rmse
+        self.rmse_validate = []
 
         # target y的最大值与最小值，for prune
         self.y_max = 0.0
         self.y_min = 0.0
 
-    def train(self, X_, y_):
+    def train(self, x_train, y_train, x_validate, y_validate):
 
-        (n, p) = X_.shape
+        (n, p) = x_train.shape
 
-        self.mse = []
+        self.rmse = []
 
         # global bias
         self.w0 = np.sum(np.random.rand(1, 1))  # bias
@@ -60,8 +63,8 @@ class FM_SGD:
         # feature
         self.V = np.random.rand(p, self.factors_num)
 
-        self.y_max = np.max(y_)
-        self.y_min = np.min(y_)
+        self.y_max = np.max(y_train)
+        self.y_min = np.min(y_train)
 
         for j in xrange(self.iter_num):
 
@@ -69,8 +72,8 @@ class FM_SGD:
 
             # shuffle
             reidx = np.random.permutation(n)
-            X_train = X_[reidx, :]
-            y_train = y_[reidx]
+            X_train = x_train[reidx, :]
+            y_train = y_train[reidx]
 
             for i in xrange(n):
 
@@ -101,7 +104,7 @@ class FM_SGD:
                 loss_sgd.append(math.pow(diff, 2))
 
                 # update mse
-                self.mse.append(sum(loss_sgd) / len(loss_sgd))
+                self.rmse_train.append(sum(loss_sgd) / len(loss_sgd))
 
                 # update w0
                 self.w0 -= self.learning_rate * (2 * diff * 1 + 2*self.reg_w*self.w0)
@@ -112,6 +115,9 @@ class FM_SGD:
                 # update V
                 self.V -= self.learning_rate * (2 * diff * (
                     X.T * (np.dot(X, self.V) - X.T * self.V)) + 2 * self.reg_v * self.V)
+
+            test_rmse = (self.w0 + x_validate*self.W.T - y_validate .T)**2/y_validate.shape[0]
+            self.rmse_validate.append(test_rmse)
 
     def validate(self, X_, y_):
         return (self.w0 + X_*self.W.T - y_.T)**2/y_.shape[0]

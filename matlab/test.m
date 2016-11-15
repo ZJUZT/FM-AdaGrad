@@ -1,3 +1,7 @@
+A = rand(1000,1000);
+B = rand(1000,500);
 tic;
-[idx,C] = kmeans(sparse(train_X),100,'Display','iter','Replicate',5);
+for i=1:100
+a = A * B;
+end
 toc;
