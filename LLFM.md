@@ -21,6 +21,7 @@ $$
 
 
 
+
 * W, V：
   * parameters of FM
 
@@ -37,6 +38,7 @@ $$
   * $$
     \frac{\partial\hat{y}(x)}{\partial\theta}=\begin{cases} \gamma(x)_j  & if \ \theta \ is \ W_{j0} \\ \gamma(x)_jx_l &  if \ \theta \ is \ W_{jl} \\ \gamma(x)_jx_l \sum_{j \neq l}v_{j,f}x_j & if \ \theta \ is V_{j,l,f}\end{cases}
     $$
+
 
 
 
@@ -84,4 +86,5 @@ Test RMSE
 | --------- | --------- |
 | FM        | 1.2516    |
 | LLFM      | 1.1396    |
-| DALLFM    | 1.1577    |
+| DALLFM    | 1.1745    |
+

@@ -8,6 +8,7 @@ y_min = min(train_Y);
 % parameters
 iter_num = 1;
 learning_rate = 0.01;
+learning_rate_anchor = 0.0001;
 factors_num = 10;
 reg_w = 0.1;
 reg_v = 0.01;
@@ -88,19 +89,22 @@ for i=1:iter_num
         tmp_W = W(:,anchor_idx);
         W(:,anchor_idx) = tmp_W - learning_rate * repmat(gamma,p,1) .* (2*err*repmat(X',[1,nearest_neighbor]) + 2*reg_w*tmp_W);
         
+        
+        s = 2 * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :)).*repmat(weight, p, 1)';
+        base = -s .* repmat(weight, p, 1)';
         for k=1:nearest_neighbor
             temp_V = squeeze(V(:,:,anchor_idx(k)));
             V(:,:,anchor_idx(k)) = temp_V - learning_rate * gamma(k) * ...
                 (2*err*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)) + 2*reg_v*squeeze(temp_V));
+            
+            
+            % update anchor points
             tmp = anchors(anchor_idx(k), :);
-            
-            
-            s = 2 * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :)).*repmat(weight, p, 1)';
-            delt = -s .* repmat(weight, p, 1)';
+            delt = base;
             delt(k, :) = delt(k,:) + s(k,:) * sum(weight);
             delt = delt / (sum(weight).^2);
             
-            anchors(anchor_idx(k), :) = tmp - learning_rate * 2 * err * y_anchor*delt;
+            anchors(anchor_idx(k), :) = tmp - learning_rate_anchor * 2 * err * y_anchor*delt;
         end
         
         % update anchor points
@@ -155,7 +159,7 @@ mse_dallfm_test = mse_dallfm_test / num_sample_test;
 
 %%
 % plot
-plot(mse_da_llfm_sgd);
+plot(mse_da_llfm_sgd.^0.5);
 xlabel('Number of samples seen');
 ylabel('MSE');
 grid on;
