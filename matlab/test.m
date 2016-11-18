@@ -1,7 +1,10 @@
-A = rand(1000,1000);
-B = rand(1000,500);
-tic;
-for i=1:100
-a = A * B;
-end
-toc;
+plot(mse_fm_sgd.^0.5);
+hold on
+plot(mse_llfm_sgd.^0.5);
+hold on
+plot(mse_da_llfm_sgd.^0.5);
+xlabel('Number of samples seen');
+ylabel('RMSE');
+legend('fm','llfm','da\_llfm');
+title('SGD (1 pass)')
+grid on;

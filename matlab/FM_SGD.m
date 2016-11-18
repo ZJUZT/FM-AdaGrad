@@ -8,17 +8,17 @@ y_min = min(train_Y);
 
 % parameters
 iter_num = 1;
-learning_rate = 0.001;
+learning_rate = 0.01;
 factors_num = 10;
-reg_w = 0;
-reg_v = 0;
+reg_w = 0.1;
+reg_v = 0.01;
 
 w0 = rand();
 W = rand(1,p);
 V = rand(p,factors_num);
 
-rmse = zeros(1,iter_num*num_sample);
-rmse_test = zeros(1, iter_num);
+mse_fm_sgd = zeros(1,iter_num*num_sample);
+
 loss = zeros(1,iter_num*num_sample);
 
 for i=1:iter_num
@@ -57,7 +57,7 @@ for i=1:iter_num
         
         idx = (i-1)*num_sample + j;
         loss(idx) = err^2;
-        rmse(idx) = sum(loss)/idx;
+        mse_fm_sgd(idx) = sum(loss)/idx;
         
         % update parameters
         w0 = w0 - learning_rate * (2 * err + 2*reg_w*w0);
@@ -68,8 +68,26 @@ for i=1:iter_num
 end
 
 %%
+% validate
+
+mse_fm_test = 0.0;
+[num_sample_test, p] = size(test_X);
+for i=1:num_sample_test
+    X = test_X(i,:);
+    y = test_Y(i,:);
+
+    tmp = sum(repmat(X',1,factors_num).*V);
+    factor_part = (sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(V.^2))))/2;
+    y_predict = w0 + W*X' + factor_part;
+    err = y_predict - y;
+    mse_fm_test = mse_fm_test + err.^2;
+end
+
+mse_fm_test = mse_fm_test / num_sample_test;
+
+%%
 % plot
-plot(rmse);
+plot(mse_fm_sgd);
 xlabel('Number of samples seen');
 ylabel('MSE');
 grid on;
