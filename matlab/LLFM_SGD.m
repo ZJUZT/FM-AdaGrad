@@ -1,16 +1,17 @@
 % load training data
 % train_X, train_Y
 load('training_data');
+load('test_data');
 [num_sample, p] = size(train_X);
 y_max = max(train_Y);
 y_min = min(train_Y);
 
-% parameters
+% parameters 
 iter_num = 1;
-learning_rate = 0.01;
+learning_rate = 0.1;
 factors_num = 10;
-reg_w = 0.1;
-reg_v = 0.01;
+reg_w = 0.001;
+reg_v = 0.001;
 
 % locally linear
 % anchor points
@@ -26,9 +27,16 @@ V = rand(p,factors_num,anchors_num);
 mse_llfm_sgd = zeros(1,iter_num*num_sample);
 loss = zeros(1,iter_num*num_sample);
 
+rmse_llfm_test = zeros(1, iter_num);
+
 % get anchor points
 fprintf('Start K-means...\n');
 [~, anchors, ~, ~, ~] = litekmeans(train_X, anchors_num);
+
+% random pick
+% idx = randperm(num_sample);
+% anchors = train_X(idx(1:anchors_num), :);
+% anchors = 0.01* rand(anchors_num, p);
 fprintf('K-means done..\n');
 
 for i=1:iter_num
@@ -72,13 +80,13 @@ for i=1:iter_num
 %         fprintf('%f\n', y_predict);
         
         % prune
-        if y_predict < y_min
-            y_predict = y_min;
-        end
-        
-        if y_predict > y_max
-            y_predict = y_max;
-        end
+%         if y_predict < y_min
+%             y_predict = y_min;
+%         end
+%         
+%         if y_predict > y_max
+%             y_predict = y_max;
+%         end
         
         err = y_predict - y;
         
@@ -102,45 +110,47 @@ for i=1:iter_num
         
 %         V = V - learning_rate * (2*err*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',[nearest_neighbor, 1,factors_num]).*V)) + 2*reg_v*V);
     end
+    
+    % validate
+
+    mse_llfm_test = 0.0;
+    [num_sample_test, p] = size(test_X);
+    tic;
+    for j=1:num_sample_test
+        if mod(j,1000)==0
+            toc;
+            tic;
+            fprintf('processing %dth sample\n', j);
+         end
+
+        X = test_X(j,:);
+        y = test_Y(j,:);
+
+        % pick anchor points
+        [anchor_idx, weight] = knn(anchors, X, nearest_neighbor);
+        gamma = weight/sum(weight);
+
+        y_anchor = zeros(1, nearest_neighbor);
+        for k=1:nearest_neighbor
+            temp_V = squeeze(V(:,:,anchor_idx(k)));
+            tmp = sum(repmat(X',1,factors_num).*temp_V);
+            y_anchor(k) = (sum(tmp.^2) - sum(sum(repmat(X'.^2,1,factors_num).*(temp_V.^2))))/2 + w0(anchor_idx(k)) + X*W(:,anchor_idx(k));
+        end
+
+        y_predict = gamma * y_anchor';
+        err = y_predict - y;
+        mse_llfm_test = mse_llfm_test + err.^2;
+    end
+
+    rmse_llfm_test(i) = (mse_llfm_test / num_sample_test).^0.5;
 end
 
 %%
-% validate
 
-mse_llfm_test = 0.0;
-[num_sample_test, p] = size(test_X);
-tic;
-for i=1:num_sample_test
-    if mod(i,1000)==0
-        toc;
-        tic;
-        fprintf('processing %dth sample\n', i);
-     end
-
-    X = test_X(i,:);
-    y = test_Y(i,:);
-
-    % pick anchor points
-    [anchor_idx, weight] = knn(anchors, X, nearest_neighbor);
-    gamma = weight/sum(weight);
-
-    y_anchor = zeros(1, nearest_neighbor);
-    for k=1:nearest_neighbor
-        temp_V = squeeze(V(:,:,anchor_idx(k)));
-        tmp = sum(repmat(X',1,factors_num).*temp_V);
-        y_anchor(k) = (sum(tmp.^2) - sum(sum(repmat(X'.^2,1,factors_num).*(temp_V.^2))))/2 + w0(anchor_idx(k)) + X*W(:,anchor_idx(k));
-    end
-    
-    y_predict = gamma * y_anchor';
-    err = y_predict - y;
-    mse_llfm_test = mse_llfm_test + err.^2;
-end
-
-mse_llfm_test = mse_llfm_test / num_sample_test;
 
 %%
 % plot
-plot(mse_llfm_sgd);
+plot(mse_llfm_sgd.^0.5);
 xlabel('Number of samples seen');
-ylabel('MSE');
+ylabel('RMSE');
 grid on;
