@@ -8,7 +8,7 @@ y_min = min(train_Y);
 
 % parameters
 iter_num = 1;
-learning_rate = 0.05;
+learning_rate = 0.01;
 factors_num = 10;
 reg_w = 0.001;
 reg_v = 0.001; 
@@ -33,7 +33,8 @@ num_knn = 0;
 
 % get anchor points
 fprintf('Start K-means...\n');
-[~, anchors, ~, ~, ~] = litekmeans(train_X, anchors_num);
+[~, anchors, ~, sumD, ~] = litekmeans(train_X, anchors_num);
+fprintf('sum of distances of K-means is: %.2f\n', sum(sumD));
 
 % random pick
 % idx = randperm(num_sample);

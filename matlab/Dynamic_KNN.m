@@ -7,9 +7,9 @@ function [ idx, weight ] = Dynamic_KNN( clusters, sample)
 %   gamma:      weights 1 * k
 % beta = 1.0;
 
-noise_ratio = 2;
+noise_ratio = 1;
 [num_sample, ~] = size(clusters);
-D = EuDist2(sample,clusters);
+D = EuDist2(sample,clusters,0);
 D = D*noise_ratio;
 [D, idx] = sort(D);
 lam = D(1)+1;
@@ -17,18 +17,25 @@ lam = D(1)+1;
 tmp_dist = 0.0;
 tmp_dist_2 = 0.0;
 
-for k=1:num_sample-1
+% set threshold to cut off some insignificant anchor points
+threshold = 0;
+
+k = 0;
+
+while true
     
 %     fprintf('%d epoch Difference: %.4f\n', k, lam - D(k+1));
-    if lam <= D(k+1)
+    if lam - D(k+1) <= threshold || k>num_sample-1
         break;
     end
+    k = k + 1;
     tmp_dist = tmp_dist + D(k);
     tmp_dist_2 = tmp_dist_2 + D(k)^2;
     lam = (tmp_dist + sqrt(k + tmp_dist^2 - k*tmp_dist_2))/k;
 end
 
 weight = repmat(lam, 1, k) - D(1:k);
+% weight = exp(weight);
 idx = idx(1:k);
 % weight = weight ./ sum(weight);
 
