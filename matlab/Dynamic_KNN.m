@@ -1,4 +1,4 @@
-function [ idx, weight ] = Dynamic_KNN( clusters, sample)
+function [ idx, weight ] = Dynamic_KNN( clusters, sample, LC)
 %KNN Summary of this function goes here
 %   clusers:    anchor_points: n * p
 %   sample:     1 * p
@@ -7,10 +7,9 @@ function [ idx, weight ] = Dynamic_KNN( clusters, sample)
 %   gamma:      weights 1 * k
 % beta = 1.0;
 
-noise_ratio = 1;
 [num_sample, ~] = size(clusters);
 D = EuDist2(sample,clusters,0);
-D = D*noise_ratio;
+D = D*LC;
 [D, idx] = sort(D);
 lam = D(1)+1;
 
@@ -25,7 +24,7 @@ k = 0;
 while true
     
 %     fprintf('%d epoch Difference: %.4f\n', k, lam - D(k+1));
-    if lam - D(k+1) <= threshold || k>num_sample-1
+    if (k>num_sample-1) || (lam - D(k+1) <= threshold)
         break;
     end
     k = k + 1;

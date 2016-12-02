@@ -8,7 +8,7 @@ y_min = min(train_Y);
 
 % parameters
 iter_num = 10;
-learning_rate = 0.01;
+learning_rate = 0.01; 
 factors_num = 10;
 reg_w = 0.001;
 reg_v = 0.001;

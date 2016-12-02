@@ -31,12 +31,12 @@ rmse_llfm_test = zeros(1, iter_num);
 
 % get anchor points
 fprintf('Start K-means...\n');
-[~, anchors, ~, ~, ~] = litekmeans(train_X, anchors_num);
+% [~, anchors, ~, ~, ~] = litekmeans(train_X, anchors_num);
 
 % random pick
 % idx = randperm(num_sample);
 % anchors = train_X(idx(1:anchors_num), :);
-% anchors = 0.01* rand(anchors_num, p);
+anchors = 0.01* rand(anchors_num, p);
 fprintf('K-means done..\n');
 
 for i=1:iter_num

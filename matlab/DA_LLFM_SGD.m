@@ -16,7 +16,9 @@ reg_v = 0.001;
 
 % locally linear
 % anchor points
-anchors_num = 50;
+anchors_num = 100;
+
+beta = 1.0;
 
 % knn
 nearest_neighbor = 10;
@@ -96,7 +98,7 @@ for i=1:iter_num
         W(:,anchor_idx) = tmp_W - learning_rate * repmat(gamma,p,1) .* (2*err*repmat(X',[1,nearest_neighbor]) + 2*reg_w*tmp_W);
         
         
-        s = 2 * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :)).*repmat(weight, p, 1)';
+        s = 2 * beta * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :)).*repmat(weight, p, 1)';
         base = -s .* repmat(weight, p, 1)';
         for k=1:nearest_neighbor
             temp_V = squeeze(V(:,:,anchor_idx(k)));

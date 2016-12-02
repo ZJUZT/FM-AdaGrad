@@ -5,13 +5,18 @@ plot(mse_fm_sgd(1:epoch*num_sample).^0.5);
 hold on
 plot(mse_llfm_sgd(1:epoch*num_sample).^0.5);
 hold on
-% plot(mse_da_llfm_sgd(1:epoch*num_sample).^0.5);
-% hold on
-plot(mse_dkllfm_sgd(1:epoch*num_sample).^0.5);
+plot(mse_da_llfm_sgd(1:epoch*num_sample).^0.5);
+hold on
+plot(mse_dadk_llfm_sgd(1:epoch*num_sample).^0.5);
 xlabel('Number of samples seen');
 ylabel('RMSE');
-legend('fm','llfm', 'dkllfm');
-title('SGD (1 pass)')
+legend('fm','llfm','da\_llfm','dadk\_llfm');
+% legend('llfm');
+% legend('da_llfm');
+% legend('dadk_llfm');
+
+str = sprintf('SGD (%d pass)', epoch);
+title(str);
 grid on;
 
 %%
