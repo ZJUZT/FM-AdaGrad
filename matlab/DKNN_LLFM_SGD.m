@@ -12,7 +12,7 @@ y_min = min(train_Y);
 % parameters 
 iter_num = 1;
 learning_rate = 0.1;
-learning_rate_anchor = 0.002;
+learning_rate_anchor = 0.001;
 factors_num = 10;
 reg_w = 0.001;
 reg_v = 0.001;
@@ -23,7 +23,7 @@ anchors_num = 100;
 
 % Lipschitz to noise ratio
 % control the number of neighbours
-LC = 3.0;
+LC = 3;
 
 % knn
 % nearest_neighbor = 10;

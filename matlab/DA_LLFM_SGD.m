@@ -9,7 +9,7 @@ y_min = min(train_Y);
 % parameters 
 iter_num = 1;
 learning_rate = 0.1;
-learning_rate_anchor = 0.002;
+learning_rate_anchor = 0.001;
 factors_num = 10;
 reg_w = 0.001;
 reg_v = 0.001;
@@ -61,7 +61,7 @@ for i=1:iter_num
         y = Y_train(j,:);
         
         % pick anchor points
-        [anchor_idx, weight] = knn(anchors, X, nearest_neighbor);
+        [anchor_idx, weight] = knn(anchors, X, nearest_neighbor, beta);
         gamma = weight/sum(weight);
         
         y_anchor = zeros(1, nearest_neighbor);
@@ -146,7 +146,7 @@ for i=1:iter_num
         y = test_Y(k,:);
 
         % pick anchor points
-        [anchor_idx, weight] = knn(anchors, X, nearest_neighbor);
+        [anchor_idx, weight] = knn(anchors, X, nearest_neighbor, beta);
         gamma = weight/sum(weight);
 
         y_anchor = zeros(1, nearest_neighbor);

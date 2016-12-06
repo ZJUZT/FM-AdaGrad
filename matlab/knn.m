@@ -5,6 +5,8 @@ function [ idx, weight ] = knn( clusters, sample, k ,beta)
 %   k:          number of nearest anchor points to be found
 %   idx:        nearest anchor points index 1 * k
 %   gamma:      weights 1 * k
+
+
 D = EuDist2(sample,clusters,0);
 [D, idx] = sort(D);
 idx = idx(1:k);

@@ -1,7 +1,7 @@
 [num_sample, p] = size(train_X);
 
 epoch = 1;
-plot(mse_fm_sgd(1:epoch*num_sample).^0.5);
+plot(mse_fm_sgd(1:epoch*num_sample).^0.5); 
 hold on
 plot(mse_llfm_sgd(1:epoch*num_sample).^0.5);
 hold on
