@@ -3,9 +3,11 @@
 
 % fully adaptive (KNN && anchor points)
 
-load('training_data');
-load('test_data'); 
-[num_sample, p] = size(train_X);
+load('training_data_100k');
+load('test_data_100k'); 
+[num_sample, ~] = size(train_X);
+p = max(train_X(:,2));
+
 y_max = max(train_Y);
 y_min = min(train_Y);
 
@@ -23,7 +25,7 @@ anchors_num = 100;
 
 % Lipschitz to noise ratio
 % control the number of neighbours
-LC = 3;
+LC = 5;
 
 % knn
 % nearest_neighbor = 10;
@@ -70,7 +72,12 @@ for i=1:iter_num
             
         end
         
-        X = X_train(j,:);
+%         X = X_train(j,:);
+%         y = Y_train(j,:);
+
+        X = zeros(1, p);
+        feature_idx = X_train(j,:);
+        X(feature_idx) = 1;
         y = Y_train(j,:);
         
         % pick anchor points
@@ -85,9 +92,11 @@ for i=1:iter_num
         
         y_anchor = zeros(1, nearest_neighbor);
         for k=1:nearest_neighbor
-            temp_V = squeeze(V(:,:,anchor_idx(k)));
-            tmp = sum(repmat(X',1,factors_num).*temp_V);
-            y_anchor(k) = (sum(tmp.^2) - sum(sum(repmat(X'.^2,1,factors_num).*(temp_V.^2))))/2 + w0(anchor_idx(k)) + X*W(:,anchor_idx(k));
+%             temp_V = squeeze(V(:,:,anchor_idx(k)));
+%             tmp = sum(repmat(X',1,factors_num).*temp_V);
+%             y_anchor(k) = (sum(tmp.^2) - sum(sum(repmat(X'.^2,1,factors_num).*(temp_V.^2))))/2 + w0(anchor_idx(k)) + X*W(:,anchor_idx(k));
+            temp_V = squeeze(V(feature_idx,:,anchor_idx(k)));
+            y_anchor(k) = sum(temp_V(1,:).*temp_V(2,:)) + w0(anchor_idx(k)) + sum(W(feature_idx,anchor_idx(k)));
         end
 
         
@@ -107,23 +116,35 @@ for i=1:iter_num
         err = y_predict - y;
         
         idx = (i-1)*num_sample + j;
-        loss(idx) = err^2;
-        mse_dadk_llfm_sgd(idx) = sum(loss)/idx;
+%         loss(idx) = err^2;
+%         mse_dadk_llfm_sgd(idx) = sum(loss)/idx;
+        if idx==1
+            mse_dadk_llfm_sgd(idx) = err^2;
+        else
+            mse_dadk_llfm_sgd(idx) = (mse_dadk_llfm_sgd(idx-1) * (idx - 1) + err^2)/idx;
+        end
         
         % update parameters
         tmp_w0 = w0(anchor_idx);
         w0(anchor_idx) = tmp_w0 - learning_rate * gamma .* (2 * err + 2*reg_w*tmp_w0);
-        tmp_W = W(:,anchor_idx);
-        W(:,anchor_idx) = tmp_W - learning_rate * repmat(gamma,p,1) .* (2*err*repmat(X',[1,nearest_neighbor]) + 2*reg_w*tmp_W);
+%         tmp_W = W(:,anchor_idx);
+%         W(:,anchor_idx) = tmp_W - learning_rate * repmat(gamma,p,1) .* (2*err*repmat(X',[1,nearest_neighbor]) + 2*reg_w*tmp_W);
+
+        tmp_W = W(feature_idx,anchor_idx);
+        W(feature_idx,anchor_idx) =  tmp_W - learning_rate * repmat(gamma,2,1) .* (2*err + 2*reg_w*tmp_W);
         
         
         s = 2 * LC * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
         base = -s .* repmat(weight, p, 1)';
         for k=1:nearest_neighbor
-            temp_V = squeeze(V(:,:,anchor_idx(k)));
-            V(:,:,anchor_idx(k)) = temp_V - learning_rate * gamma(k) * ...
-                (2*err*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)) + 2*reg_v*squeeze(temp_V));
+%             temp_V = squeeze(V(:,:,anchor_idx(k)));
+%             V(:,:,anchor_idx(k)) = temp_V - learning_rate * gamma(k) * ...
+%                 (2*err*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)) + 2*reg_v*squeeze(temp_V));
+            temp_V = squeeze(V(feature_idx,:,anchor_idx(k)));
             
+            V(feature_idx,:,anchor_idx(k)) = ...
+                  temp_V - learning_rate * gamma(k) * ...
+                  (2*err*((repmat(sum(temp_V),2,1))- temp_V) + 2*reg_v*temp_V);
             
             % update anchor points
             tmp = anchors(anchor_idx(k), :);
@@ -161,7 +182,12 @@ for i=1:iter_num
             fprintf('%d epoch(validation)---processing %dth sample\n',i, k);
          end
 
-        X = test_X(k,:);
+%         X = test_X(k,:);
+%         y = test_Y(k,:);
+
+        X = zeros(1, p);
+        feature_idx = test_X(k,:);
+        X(feature_idx) = 1;
         y = test_Y(k,:);
 
         % pick anchor points
@@ -172,10 +198,15 @@ for i=1:iter_num
         nearest_neighbor = length(anchor_idx);
 
         y_anchor = zeros(1, nearest_neighbor);
+%         for n=1:nearest_neighbor
+%             temp_V = squeeze(V(:,:,anchor_idx(n)));
+%             tmp = sum(repmat(X',1,factors_num).*temp_V);
+%             y_anchor(n) = (sum(tmp.^2) - sum(sum(repmat(X'.^2,1,factors_num).*(temp_V.^2))))/2 + w0(anchor_idx(n)) + X*W(:,anchor_idx(n));
+%         end
+
         for n=1:nearest_neighbor
-            temp_V = squeeze(V(:,:,anchor_idx(n)));
-            tmp = sum(repmat(X',1,factors_num).*temp_V);
-            y_anchor(n) = (sum(tmp.^2) - sum(sum(repmat(X'.^2,1,factors_num).*(temp_V.^2))))/2 + w0(anchor_idx(n)) + X*W(:,anchor_idx(n));
+            temp_V = squeeze(V(feature_idx,:,anchor_idx(n)));
+            y_anchor(n) = sum(temp_V(1,:).*temp_V(2,:)) + w0(anchor_idx(n)) + sum(W(feature_idx,anchor_idx(n)));
         end
 
         y_predict = gamma * y_anchor';

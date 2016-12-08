@@ -8,8 +8,8 @@ function [ idx, weight ] = Dynamic_KNN( clusters, sample, LC)
 % beta = 1.0;
 
 [num_sample, ~] = size(clusters);
-% D = EuDist2(sample,clusters,0);
-D = sum((clusters - repmat(sample, num_sample, 1)).^2);
+D = EuDist2(sample,clusters,0);
+% D = sum((clusters - repmat(sample, num_sample, 1)).^2);
 D = D*LC;
 [D, idx] = sort(D);
 lam = D(1)+1;

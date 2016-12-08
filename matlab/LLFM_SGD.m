@@ -1,7 +1,7 @@
 % load training data
 % train_X, train_Y
-load('training_data_10m');
-load('test_data_10m');
+load('training_data_100k');
+load('test_data_100k');
 [num_sample, ~] = size(train_X);
 p = max(train_X(:,2));
 
@@ -53,7 +53,7 @@ for i=1:iter_num
     % SGD
     tic;
     for j=1:num_sample
-        if mod(j,10000)==0
+        if mod(j,1000)==0
             toc;
             tic;
             fprintf('processing %dth sample\n', j);
@@ -139,7 +139,7 @@ for i=1:iter_num
     % validate
 
     mse_llfm_test = 0.0;
-    [num_sample_test, p] = size(test_X);
+    [num_sample_test, ~] = size(test_X);
     tic;
     for j=1:num_sample_test
         if mod(j,1000)==0
@@ -148,7 +148,12 @@ for i=1:iter_num
             fprintf('processing %dth sample\n', j);
          end
 
-        X = test_X(j,:);
+%         X = test_X(j,:);
+%         y = test_Y(j,:);
+
+        X = zeros(1, p);
+        feature_idx = test_X(j,:);
+        X(feature_idx) = 1;
         y = test_Y(j,:);
 
         % pick anchor points
@@ -156,10 +161,14 @@ for i=1:iter_num
         gamma = weight/sum(weight);
 
         y_anchor = zeros(1, nearest_neighbor);
+%         for k=1:nearest_neighbor
+%             temp_V = squeeze(V(:,:,anchor_idx(k)));
+%             tmp = sum(repmat(X',1,factors_num).*temp_V);
+%             y_anchor(k) = (sum(tmp.^2) - sum(sum(repmat(X'.^2,1,factors_num).*(temp_V.^2))))/2 + w0(anchor_idx(k)) + X*W(:,anchor_idx(k));
+%         end
         for k=1:nearest_neighbor
-            temp_V = squeeze(V(:,:,anchor_idx(k)));
-            tmp = sum(repmat(X',1,factors_num).*temp_V);
-            y_anchor(k) = (sum(tmp.^2) - sum(sum(repmat(X'.^2,1,factors_num).*(temp_V.^2))))/2 + w0(anchor_idx(k)) + X*W(:,anchor_idx(k));
+            temp_V = squeeze(V(feature_idx,:,anchor_idx(k)));
+            y_anchor(k) = sum(temp_V(1,:).*temp_V(2,:)) + w0(anchor_idx(k)) + sum(W(feature_idx,anchor_idx(k)));
         end
 
         y_predict = gamma * y_anchor';

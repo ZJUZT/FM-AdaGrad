@@ -1,7 +1,7 @@
 % load training data
 % train_X, train_Y
-load('training_data_10m');
-load('test_data_10m');
+load('training_data_100k');
+load('test_data_100k');
 [num_sample, ~] = size(train_X);
 p = max(train_X(:,2));
 y_max = max(train_Y);
@@ -52,9 +52,9 @@ for i=1:iter_num
 %         X = X_train(j,:);
 %         y = Y_train(j,:);
         
-        X = zeros(1, p);
+%         X = zeros(1, p);
         feature_idx = X_train(j,:);
-        X(feature_idx) = 1;
+%         X(feature_idx) = 1;
         y = Y_train(j,:);
         
         
@@ -113,16 +113,17 @@ for i=1:iter_num
             tic;
             fprintf('%d epoch(validation)---processing %dth sample\n',i, k);
         end
-        X = zeros(1, p);
-        X(test_X(k,:)) = 1;
-        y = train_Y(k,:);
+%         X = zeros(1, p);
+        feature_idx = test_X(k,:);
+%         X(feature_idx) = 1;
+        y = test_Y(k,:);
 
 %         tmp = sum(repmat(X',1,factors_num).*V) ;
 %         factor_part = (sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(V.^2))))/2;
 %         y_predict = w0 + W*X' + factor_part;
 
         % simplify just for recommendation question
-        factor_part = sum(V(feature_idx(1)).*V(feature_idx(2)));
+        factor_part = sum(V(feature_idx(1),:).*V(feature_idx(2),:));
         y_predict = w0 + sum(W(feature_idx)) + factor_part;
         
         err = y_predict - y;

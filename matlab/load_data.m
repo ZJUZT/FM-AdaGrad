@@ -1,6 +1,7 @@
 % load data
 % training data
-train_raw_data = load('../ml-1m/ra.train');
+% train_raw_data = load('../ml-1m/ra.train');
+train_raw_data = load('../ml-100k/ua.base');
 
 % calculate total feature
 num_user = max(train_raw_data(:,1));
@@ -21,7 +22,8 @@ train_X = [train_raw_data(:,1),train_raw_data(:,2) + num_user];
 train_Y = train_raw_data(:,3);
 %%
 % test data
-test_raw_data = load('../ml-1m/ra.test');
+% test_raw_data = load('../ml-1m/ra.test');
+test_raw_data = load('../ml-100k/ua.test');
 
 % get training sampe
 % num_sample * num_fea
