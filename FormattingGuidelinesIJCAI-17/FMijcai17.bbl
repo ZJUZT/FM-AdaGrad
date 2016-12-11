@@ -1,0 +1,33 @@
+\begin{thebibliography}{}
+
+\bibitem[\protect\citeauthoryear{Ladicky and Torr}{2011}]{ladicky2011locally}
+Lubor Ladicky and Philip Torr.
+\newblock Locally linear support vector machines.
+\newblock In {\em Proceedings of the 28th International Conference on Machine
+  Learning (ICML-11)}, pages 985--992, 2011.
+
+\bibitem[\protect\citeauthoryear{Rendle}{2010}]{rendle2010factorization}
+Steffen Rendle.
+\newblock Factorization machines.
+\newblock In {\em 2010 IEEE International Conference on Data Mining}, pages
+  995--1000. IEEE, 2010.
+
+\bibitem[\protect\citeauthoryear{Rendle}{2012}]{rendle2012factorization}
+Steffen Rendle.
+\newblock Factorization machines with libfm.
+\newblock {\em ACM Transactions on Intelligent Systems and Technology (TIST)},
+  3(3):57, 2012.
+
+\bibitem[\protect\citeauthoryear{Vapnik}{2013}]{vapnik2013nature}
+Vladimir Vapnik.
+\newblock {\em The nature of statistical learning theory}.
+\newblock Springer Science \& Business Media, 2013.
+
+\bibitem[\protect\citeauthoryear{Yu \bgroup \em et al.\egroup
+  }{2009}]{yu2009nonlinear}
+Kai Yu, Tong Zhang, and Yihong Gong.
+\newblock Nonlinear learning using local coordinate coding.
+\newblock In {\em Advances in neural information processing systems}, pages
+  2223--2231, 2009.
+
+\end{thebibliography}

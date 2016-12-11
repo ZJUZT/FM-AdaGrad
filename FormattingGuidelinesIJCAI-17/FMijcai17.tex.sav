@@ -1,0 +1,97 @@
+%%%% ijcai17.tex
+
+\typeout{IJCAI-17 Instructions for Authors}
+
+% These are the instructions for authors for IJCAI-17.
+% They are the same as the ones for IJCAI-11 with superficical wording
+%   changes only.
+
+\documentclass{article}
+% The file ijcai17.sty is the style file for IJCAI-17 (same as ijcai07.sty).
+\usepackage{ijcai17}
+\usepackage{amsmath,amsfonts}
+% Use the postscript times font!
+\usepackage{times}
+\def \y {\mathbf{y}}
+\def \x {\mathbf{x}}
+\def \Y {\mathbf{Y}}
+\def \X {\mathbf{X}}
+\def \w {\mathbf{w}}
+\def \v {\mathbf{v}}
+\def \V {\mathbf{V}}
+\def \Z {\mathbf{Z}}
+% the following package is optional:
+%\usepackage{latexsym}
+
+% Following comment is from ijcai97-submit.tex:
+% The preparation of these files was supported by Schlumberger Palo Alto
+% Research, AT\&T Bell Laboratories, and Morgan Kaufmann Publishers.
+% Shirley Jowell, of Morgan Kaufmann Publishers, and Peter F.
+% Patel-Schneider, of AT\&T Bell Laboratories collaborated on their
+% preparation.
+
+% These instructions can be modified and used in other conferences as long
+% as credit to the authors and supporting agencies is retained, this notice
+% is not changed, and further modification or reuse is not restricted.
+% Neither Shirley Jowell nor Peter F. Patel-Schneider can be listed as
+% contacts for providing assistance without their prior permission.
+
+% To use for other conferences, change references to files and the
+% conference appropriate and use other authors, contacts, publishers, and
+% organizations.
+% Also change the deadline and address for returning papers and the length and
+% page charge instructions.
+% Put where the files are available in the appropriate places.
+
+\title{Locally Linear Factorization Machine}
+\author{Anonymous Author(s) \\
+Affiliation \\
+email}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+
+\section{Introduction}
+
+\section{Related work}
+\section{Locally Linear Factorization Machine Model}
+Factorization machines (FMs) \cite{rendle2010factorization,rendle2012factorization} are a widely used method for efficiently using high-order feature interaction in classification and regression tasks even when the data is very high-dimensional. A standard $2$-order factorization machine model takes the form:
+\begin{align}
+\hat{y}(\x) = \sum^p_{j=1}w_j x_j + \sum^p_{j=1}\sum^p_{j^\prime = j +1} x_j x_{j^\prime}\sum^k_{f=1}v_{j,f}v_{j^\prime,f},
+\end{align}
+where $p$ is the dimensionality of feature vector $\x \in \mathbb{R}^p$, $k \ll p$ is a hyper-parameter that denotes the dimensionality of latent factors, and $ w_j, v_{j,f}$ are the model parameters to be estimated, i.e., $\Theta=\{w_0,w_1,\dots,w_n,v_{1,1},\dots,v_{p,k}\}=\{\w \in \mathbb{R}^{p+1},\V \in \mathbb{R}^{p \times k}\}$. It is equivalent to the following simple equation:
+\begin{align}
+\hat{y}(\x|\w,\V) = \w^\top\x+\sum^p_{j=1}\sum^p_{j^\prime=j+1}(\V\V^\top)_{jj^\prime}x_jx_{j^\prime},
+\end{align}
+The main advantage of FMs compared to the polynomial kernel in SVM \cite{vapnik2013nature} is the pairwise feature interaction weight matrix $\Z = \V\V^\top \in \mathbb{S}^{p \times p}$, where the number of parameters to estimate is reduced from $p^2$ to $kp$ by utilizing the factorized form. In addition, this factorization form helps to drop the prediction cost to linear runtime by utilizing
+\begin{align}
+\hat{y}(\x|\w,\V) = \w^\top\x + \frac{1}{2}\left(\|\V^\top\x\|^2-\sum^k_{f=1}\|\v_f\circ\x\|^2\right),
+\end{align}
+where $\v_f\in\mathbb{R}^p$ is the $f^{th}$ column of $\V$ and $\circ$ denotes the element-wise product between two vectors by $\v_f \circ \x = [v_{f_1}x1,\dots,v_{fp}x_p]^\top$. Thus, the computation cost is in $O(kp)$ instead of $O(p^2)$. Moreover, under sparsity condition, the prediction cost reduces to $O(kN_z(\x))$, where $N_z(\x)$ is the number of non-zero features in $\x$. Given a training set consisting of $n$ feature vectors $\X = [\x_1,\dots,\x_n]^\top \in \mathbb{R}^{n\times p}$ and corresponding targets $\Y = [y_1,\dots,y_n]^\top \in \mathbb{R}^n$, model parameters $\Theta$ can be learned by using the principle of empirical risk minimization and solving the following non-convex problem
+\begin{align}
+\min\limits_{\w \in \mathbb{R}^p,\V\in\mathbb{R}^{p\times k}} \frac{1}{n}\sum^n_{i=1}\ell(y_i,\hat{y}(\x|\w,\V))+\frac{\beta_1}{2}\|\w\|^2+\frac{\beta_2}{2}\|\V\|^2_F,
+\end{align}
+where $\beta_1 >0,\beta_2>0$ are hyper-parameters that avoid overfitting and $\ell$ is a convex loss function incurred. For regression task, we can adopt the squared loss $\ell(y,\hat{y})=\frac{1}{2}(y-\hat{y})^2$. This optimization problem can be efficiently solved by many off-the-shelf approaches, such as stochastic gradient descent or coordinate descent methods which has been implemented in the libfm library \cite{rendle2012factorization}. Both methods have a runtime complexity of $O(kN_z(\x))$ under sparsity.
+
+Factorization Machines haven been found successful in many prediction tasks, including classification, regression and ranking, due to its capability to model the pairwise feature interaction under low-rank constraint. However, Factorization Machines only consider the second order information of the input feature which limits their capacity in non-linear problems. Specifically, taking classification task into consideration, not all problems are approximately linearly separable after quadratic mapping. In most cases, real data naturally groups into clusters and lies on nearly disjoint lower dimensional manifolds and thus the original Factorization Machines are inapplicable. Although they have the capability of modeling the pairwise feature interaction, Factorization Machines  fail to capture the underlying structures of complex data. One intuitive idea for addressing this limitation is to leverage the manifold geometric structure to learn a nonlinear function which can be effectively approximated by a linear function with an coding under appropriate localization conditions. In other words, we assume that in a sufficiently small region the decision boundary is approximately linear and each data point can then be approximated with a linear combination of surrounding anchor points, and the linear coefficients are local coordinate values that can be used for subsequent model training.
+
+First
+
+To encode this local linearity, the model sparameters $\Theta$ of the Factorization Machines should vary according to the location of the point $\x$ in the feature space as:
+s
+
+
+
+\section{Experiments}
+\section{Conclusion}
+%% The file named.bst is a bibliography style file for BibTeX 0.99c
+\bibliographystyle{named}
+\bibliography{ijcai17}
+
+\end{document}
+

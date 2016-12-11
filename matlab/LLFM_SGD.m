@@ -13,15 +13,15 @@ y_min = min(train_Y);
 iter_num = 1;
 learning_rate = 0.1;
 factors_num = 10;
-reg_w = 0.001;
-reg_v = 0.001;
+reg_w = 0.1;
+reg_v = 0.1;
 
 % locally linear
 % anchor points
-anchors_num = 100;
+anchors_num = 50;
 
 % knn
-nearest_neighbor = 10;
+nearest_neighbor = 30;
 
 beta = 1.0;
 
@@ -36,12 +36,18 @@ rmse_llfm_test = zeros(1, iter_num);
 
 % get anchor points
 fprintf('Start K-means...\n');
-% [~, anchors, ~, ~, ~] = litekmeans(train_X, anchors_num);
+
+
+train_X_full = zeros(num_sample, p);
+for i=1:num_sample
+    train_X_full(i,train_X(i,:))=1;
+end
+[~, anchors, ~, ~, ~] = litekmeans(train_X_full, anchors_num);
 
 % random pick
 % idx = randperm(num_sample);
-% anchors = train_X(idx(1:anchors_num), :);
-anchors = 0.01* rand(anchors_num, p);
+% % anchors = train_X(idx(1:anchors_num), :);
+% anchors = 0.01* rand(anchors_num, p);
 fprintf('K-means done..\n');
 
 for i=1:iter_num

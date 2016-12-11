@@ -11,19 +11,19 @@ y_min = min(train_Y);
 % parameters 
 iter_num = 1;
 learning_rate = 0.1;
-learning_rate_anchor = 0.001;
+learning_rate_anchor = 1e-4;
 factors_num = 10;
-reg_w = 0.001;
-reg_v = 0.001;
+reg_w = 0.1;
+reg_v = 0.1;
 
 % locally linear
 % anchor points
-anchors_num = 100;
+anchors_num = 50;
 
 beta = 1.0;
 
 % knn
-nearest_neighbor = 10;
+nearest_neighbor = 30;
 
 w0 = rand(1, anchors_num);
 W = rand(p,anchors_num);
@@ -37,11 +37,17 @@ rmse_dallfm_test = zeros(1, iter_num);
 % get anchor points
 fprintf('Start K-means...\n');
 
+train_X_full = zeros(num_sample, p);
+for i=1:num_sample
+    train_X_full(i,train_X(i,:))=1;
+end
+[~, anchors, ~, ~, ~] = litekmeans(train_X_full, anchors_num);
+
 % initial anchor points
 % [~, anchors, ~, ~, ~] = litekmeans(train_X, anchors_num);
 % idx = randperm(num_sample);
 % anchors = train_X(idx(1:anchors_num), :);
-anchors = 0.01*rand(anchors_num, p);
+% anchors = 0.01*rand(anchors_num, p);
 fprintf('K-means done..\n');
 
 for i=1:iter_num
@@ -115,8 +121,16 @@ for i=1:iter_num
         W(feature_idx,anchor_idx) =  tmp_W - learning_rate * repmat(gamma,2,1) .* (2*err + 2*reg_w*tmp_W);
         
         
+%         s = 2 * beta * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :)).*repmat(weight, p, 1)';
+%         base = -s .* repmat(weight, p, 1)'; 
         s = 2 * beta * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :)).*repmat(weight, p, 1)';
         base = -s .* repmat(weight, p, 1)';
+        base = repmat(y_anchor * base,nearest_neighbor,1) + repmat(y_anchor',1,p).* s*sum(weight);
+        anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * 2 * err * base/(sum(weight).^2);
+         
+         
+        
+%         base = -2 * beta * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :)).*repmat(weight.^2, p, 1)';
         for k=1:nearest_neighbor
 %             temp_V = squeeze(V(:,:,anchor_idx(k)));
 %             V(:,:,anchor_idx(k)) = temp_V - learning_rate * gamma(k) * ...
@@ -131,11 +145,12 @@ for i=1:iter_num
             
             % update anchor points
 %             tmp = anchors(anchor_idx(k), :);
-            delt = base;
-            delt(k, :) = delt(k,:) + s(k,:) * sum(weight);
-            delt = delt / (sum(weight).^2);
-            
-            anchors(anchor_idx(k), :) = anchors(anchor_idx(k), :) - learning_rate_anchor * 2 * err * y_anchor*delt;
+%             delt = base;
+%             delt(k, :) = delt(k,:) + s(k,:) * sum(weight);
+%             delt = delt / (sum(weight).^2);
+% 
+%             
+%             anchors(anchor_idx(k), :) = anchors(anchor_idx(k), :) - learning_rate_anchor * 2 * err * y_anchor*delt;
         end
         
         % update anchor points
@@ -194,7 +209,7 @@ for i=1:iter_num
         mse_dallfm_test = mse_dallfm_test + err.^2;
     end
 
-    rmse_dallfm_test(i) = (mse_dallfm_test / num_sample_test)^0.5;
+    rmse_dallfm_test(i) = (mse_dallfm_test / num_sample_test)^0.5 ;
 end
 
 %%

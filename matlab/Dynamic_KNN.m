@@ -1,4 +1,4 @@
-function [ idx, weight ] = Dynamic_KNN( clusters, sample, LC)
+function [ idx, D,lam] = Dynamic_KNN( clusters, sample, LC)
 %KNN Summary of this function goes here
 %   clusers:    anchor_points: n * p
 %   sample:     1 * p
@@ -34,8 +34,10 @@ while true
     lam = (tmp_dist + sqrt(k + tmp_dist^2 - k*tmp_dist_2))/k;
 end
 
-weight = repmat(lam, 1, k) - D(1:k);
+% weight = repmat(lam, 1, k) - D(1:k);
 % weight = exp(weight);
+
+D = D(1:k);
 idx = idx(1:k);
 % weight = weight ./ sum(weight);
 

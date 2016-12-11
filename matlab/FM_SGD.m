@@ -11,8 +11,8 @@ y_min = min(train_Y);
 iter_num = 1;
 learning_rate = 0.01; 
 factors_num = 10;
-reg_w = 0.001;
-reg_v = 0.001;
+reg_w = 0.1;
+reg_v = 0.1;
 
 % momentum = 0;
 
@@ -42,7 +42,7 @@ for i=1:iter_num
     
     for j=1:num_sample
         
-        if mod(j,1e5)==0
+        if mod(j,1e3)==0
             toc;
             tic;
             fprintf('%d epoch---processing %dth sample\n', i, j);
