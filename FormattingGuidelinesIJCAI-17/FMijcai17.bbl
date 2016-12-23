@@ -6,6 +6,12 @@ Lubor Ladicky and Philip Torr.
 \newblock In {\em Proceedings of the 28th International Conference on Machine
   Learning (ICML-11)}, pages 985--992, 2011.
 
+\bibitem[\protect\citeauthoryear{Pan and Chen}{2013}]{pan2013gbpr}
+Weike Pan and Li~Chen.
+\newblock Gbpr: Group preference based bayesian personalized ranking for
+  one-class collaborative filtering.
+\newblock In {\em IJCAI}, volume~13, pages 2691--2697, 2013.
+
 \bibitem[\protect\citeauthoryear{Rendle}{2010}]{rendle2010factorization}
 Steffen Rendle.
 \newblock Factorization machines.

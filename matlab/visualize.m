@@ -1,16 +1,17 @@
 [num_sample, p] = size(train_X);
 
 epoch = 1;
-plot(mse_fm_sgd(1:epoch*num_sample).^0.5); 
-hold on
+% plot(mse_fm_sgd(1:epoch*num_sample).^0.5); 
+% hold on
 plot(mse_llfm_sgd(1:epoch*num_sample).^0.5);
 hold on 
 plot(mse_da_llfm_sgd(1:epoch*num_sample).^0.5);
-hold on
-plot(mse_dadk_llfm_sgd(1:epoch*num_sample).^0.5);
+% hold on
+% 
+% plot(mse_dadk_llfm_sgd(1:epoch*num_sample).^0.5);
 xlabel('Number of samples seen');
 ylabel('RMSE');
-legend('fm','llfm','dadk\_llfm');
+legend('fm','llfm','da\_llfm','dadk\_llfm');
 % legend('llfm');
 % legend('da_llfm');
 % legend('dadk_llfm');

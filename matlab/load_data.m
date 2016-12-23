@@ -1,40 +1,27 @@
-% load data
-% training data
-% train_raw_data = load('../ml-1m/ra.train');
-train_raw_data = load('../ml-100k/ua.base');
+% movie length 100k
+ml_100k_training = 'data/movielens/training_data_100k';
+ml_100k_test = 'data/movielens/test_data_100k';
 
-% calculate total feature
-num_user = max(train_raw_data(:,1));
-num_movie = max(train_raw_data(:,2));
-% num_fea = num_user + num_movie;
+% movie length 1m
+ml_1m_training = 'data/movielens/training_data_1m';
+ml_1m_test = 'data/movielens/test_data_1m';
 
-% get training sampe
-% num_sample * num_fea
-% [num_sample,~] = size(train_raw_data);
-% train_X = zeros(num_sample,num_fea);
+% movie length 10m
+ml_10m_training = 'data/movielens/training_data_10m';
+ml_10m_test = 'data/movielens/test_data_10m';
 
-train_X = [train_raw_data(:,1),train_raw_data(:,2) + num_user];
-% train_raw_data(:,2) = train_raw_data(:,2) + num_user;
-% for i=1:num_sample
-%     train_X(i,train_raw_data(i,1:2)) = 1;
-% end
+% amazon video
+amazon_video_train = 'data/amazon/training_data_video';
+amazon_video_test = 'dataamazon/test_data_video';
+% 
+training_data = ml_100k_training;
+test_data = ml_100k_test;
+% 
+% training_data = ml_1m_training;
+% test_data = ml_1m_test;
 
-train_Y = train_raw_data(:,3);
-%%
-% test data
-% test_raw_data = load('../ml-1m/ra.test');
-test_raw_data = load('../ml-100k/ua.test');
+% training_data = amazon_video_train;
+% test_data = amazon_video_test;
 
-% get training sampe
-% num_sample * num_fea
-% [num_sample,~] = size(test_raw_data);
-% test_X = zeros(num_sample,num_fea);
-
-% test_raw_data(:,2) = test_raw_data(:,2) + num_user;
-% for i=1:num_sample
-%     test_X(i,test_raw_data(i,1:2)) = 1;
-% end
-
-test_X = [test_raw_data(:,1),test_raw_data(:,2) + num_user];
-
-test_Y = test_raw_data(:,3);
+load(training_data);
+load(test_data); 

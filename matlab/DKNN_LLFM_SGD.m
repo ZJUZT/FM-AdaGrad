@@ -3,10 +3,10 @@
 
 % fully adaptive (KNN && anchor points)
 
-load('training_data_100k');
-load('test_data_100k'); 
+% load('training_data_1m');
+% load('test_data_1m'); 
 [num_sample, ~] = size(train_X);
-p = max(train_X(:,2));
+p = max(train_X(:,2)); 
 
 y_max = max(train_Y);
 y_min = min(train_Y);
@@ -14,10 +14,10 @@ y_min = min(train_Y);
 % parameters 
 iter_num = 1;
 learning_rate = 0.1;
-learning_rate_anchor = 1e-4;
+learning_rate_anchor = 1e-3;
 factors_num = 10;
-reg_w = 0.1;
-reg_v = 0.1; 
+reg_w = 1e-3;
+reg_v = 1e-3;
 
 % locally linear
 % anchor points
@@ -26,42 +26,49 @@ anchors_num = 50;
 % Lipschitz to noise ratio
 % control the number of neighbours
 LC = 0.5;
+rmse_dadk_llfm_test = zeros(1, iter_num); 
+rmse_dadk_llfm_train = zeros(1, iter_num); 
 
 % knn
 % nearest_neighbor = 10;
-num_nn = 0;
-num_nn_batch = 0;
 
-w0 = rand(1, anchors_num);
-W = rand(p,anchors_num);
-V = rand(p,factors_num,anchors_num);
 
-mse_dadk_llfm_sgd = zeros(1,iter_num*num_sample);
-loss = zeros(1,iter_num*num_sample);
+bcon_dadkllfm = zeros(1,iter_num);
+sumD_dadkllfm = zeros(1,iter_num);
 
-rmse_dadk_llfm_test = zeros(1, iter_num);
-
-% get anchor points
-fprintf('Start K-means...\n');
-
-train_X_full = zeros(num_sample, p);
-for i=1:num_sample
-    train_X_full(i,train_X(i,:))=1;
-end
-[~, anchors, ~, ~, ~] = litekmeans(train_X_full, anchors_num);
 
 % initial anchor points
 % [~, anchors, ~, ~, ~] = litekmeans(train_X, anchors_num);
 % idx = randperm(num_sample);
 % anchors = train_X(idx(1:anchors_num), :);
 % anchors = 0.01*rand(anchors_num, p);
-fprintf('K-means done..\n');
+
 
 for i=1:iter_num
     % do shuffle
     re_idx = randperm(num_sample);
     X_train = train_X(re_idx,:);
     Y_train = train_Y(re_idx);
+    
+    num_nn = 0;
+    num_nn_batch = 0;
+    minmum_K = 100;
+    maximum_K = 0;
+    
+    w0 = rand(1, anchors_num);
+    W = rand(p,anchors_num);
+    V = rand(p,factors_num,anchors_num);
+
+    mse_dadk_llfm_sgd = zeros(1,num_sample);
+    loss = zeros(1,num_sample);
+
+    % get anchor points
+    fprintf('Start K-means...\n');
+    [~, anchors, bcon_dadkllfm(i), SD, ~] = litekmeans(sparse_matrix(X_train), anchors_num);
+%     anchors = 0.01*rand(anchors_num, p);
+
+    sumD_dadkllfm(i) = sum(SD);
+    fprintf('K-means done..\n');
     
     % SGD
     tic;
@@ -72,7 +79,7 @@ for i=1:iter_num
             
             fprintf('%d epoch---processing %dth sample\n', i, j);
             fprintf('batch average value of K in KNN is %.2f\n', num_nn_batch/1e3);
-            fprintf('overall average value of K in KNN is %.2f\n', num_nn/((i-1)*num_sample + j));
+            fprintf('overall average value of K in KNN is %.2f\n', num_nn/j);
             
             num_nn_batch = 0;
             
@@ -91,6 +98,13 @@ for i=1:iter_num
 
         [anchor_idx, D, lam] = Dynamic_KNN(anchors, X, LC);
         nearest_neighbor = length(anchor_idx);
+        if minmum_K>nearest_neighbor
+            minmum_K=nearest_neighbor;
+        end
+        
+        if maximum_K<nearest_neighbor
+            maximum_K=nearest_neighbor;
+        end
         
         weight = lam - D;
         
@@ -126,23 +140,26 @@ for i=1:iter_num
         
         err = y_predict - y;
         
-        idx = (i-1)*num_sample + j;
+%         idx = (i-1)*num_sample + j;
 %         loss(idx) = err^2;
 %         mse_dadk_llfm_sgd(idx) = sum(loss)/idx;
+        idx = j;
         if idx==1
             mse_dadk_llfm_sgd(idx) = err^2;
         else
             mse_dadk_llfm_sgd(idx) = (mse_dadk_llfm_sgd(idx-1) * (idx - 1) + err^2)/idx;
         end
         
+        rmse_dadk_llfm_train(i) = mse_dadk_llfm_sgd(idx)^0.5;
+        
         % update parameters
         tmp_w0 = w0(anchor_idx);
-        w0(anchor_idx) = tmp_w0 - learning_rate * gamma .* (2 * err + 2*reg_w*tmp_w0);
+        w0(anchor_idx) = tmp_w0 - learning_rate * gamma .* (2 * err);
 %         tmp_W = W(:,anchor_idx);
 %         W(:,anchor_idx) = tmp_W - learning_rate * repmat(gamma,p,1) .* (2*err*repmat(X',[1,nearest_neighbor]) + 2*reg_w*tmp_W);
 
         tmp_W = W(feature_idx,anchor_idx);
-        W(feature_idx,anchor_idx) =  tmp_W - learning_rate * repmat(gamma,2,1) .* (2*err + 2*reg_w*tmp_W);
+        W(feature_idx,anchor_idx) =  tmp_W - learning_rate * (2*err * repmat(gamma,2,1) + 2*reg_w*tmp_W);
         
         
 %         s = 2 * LC * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
@@ -150,13 +167,22 @@ for i=1:iter_num
 
 %         s = 2 * LC * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :)).*repmat(weight, p, 1)';
 
-        s = repmat((2-2/nearest_neighbor-2*LC*(sum(weight.^2)-...
-            nearest_neighbor*weight)/sqrt(nearest_neighbor+...
-            sum(weight).^2-nearest_neighbor*sum(weight.^2))),p,1)' .* ...
-            (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
-        base = -s .* repmat(weight, p, 1)';
-        base = repmat(y_anchor * base,nearest_neighbor,1) + repmat(y_anchor',1,p).* s*sum(weight);
-        anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * 2 * err * base/(sum(weight).^2);
+%         s = repmat(-2*LC*(sum(weight.^2)-...
+%             nearest_neighbor*weight)/sqrt(nearest_neighbor+...
+%             sum(weight).^2-nearest_neighbor*sum(weight.^2)),p,1)' .* ...
+%             (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
+%         s1 = repmat(2*LC-2*LC/nearest_neighbor-2*LC*(sum(weight.^2)-...
+%             nearest_neighbor*weight)/nearest_neighbor/sqrt(nearest_neighbor+...
+%             sum(weight).^2-nearest_neighbor*sum(weight.^2)),p,1)' .* ...
+%             (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
+        
+%         base = -s .* repmat(weight, p, 1)';
+%         base = repmat(y_anchor * base,nearest_neighbor,1) + repmat(y_anchor',1,p).* s*sum(weight);
+
+        s = 2 * LC * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
+        base = -s * sum(weight.*y_anchor);
+        base = base + repmat(y_anchor',1,p).* s*sum(weight);
+        anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * 2 *  err * base/(sum(weight).^2);
         
         
         for k=1:nearest_neighbor
@@ -166,8 +192,8 @@ for i=1:iter_num
             temp_V = squeeze(V(feature_idx,:,anchor_idx(k)));
             
             V(feature_idx,:,anchor_idx(k)) = ...
-                  temp_V - learning_rate * gamma(k) * ...
-                  (2*err*((repmat(sum(temp_V),2,1))- temp_V) + 2*reg_v*temp_V);
+                  temp_V - learning_rate * ...
+                  (2*err*gamma(k)*((repmat(sum(temp_V),2,1))- temp_V) + 2*reg_v*temp_V);
             
             % update anchor points
 %             tmp = anchors(anchor_idx(k), :);
@@ -216,9 +242,12 @@ for i=1:iter_num
         % pick anchor points
 %         [anchor_idx, weight] = knn(anchors, X, nearest_neighbor);
         
-        [anchor_idx, weight] = Dynamic_KNN(anchors, X, LC);
-        gamma = weight/sum(weight);
+        [anchor_idx, D, lam] = Dynamic_KNN(anchors, X, LC);
         nearest_neighbor = length(anchor_idx);
+        
+        weight = lam - D;
+        
+        gamma = weight/sum(weight);
 
         y_anchor = zeros(1, nearest_neighbor);
 %         for n=1:nearest_neighbor
@@ -233,6 +262,14 @@ for i=1:iter_num
         end
 
         y_predict = gamma * y_anchor';
+        % prune
+%         if y_predict < y_min
+%             y_predict = y_min;
+%         end
+%          
+%         if y_predict > y_max
+%             y_predict = y_max;
+%         end
         err = y_predict - y;
         mse_dallfm_test = mse_dallfm_test + err.^2;
     end
