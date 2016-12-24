@@ -14,7 +14,7 @@ y_min = min(train_Y);
 % parameters 
 iter_num = 1;
 learning_rate = 0.1;
-learning_rate_anchor = 1e-3;
+learning_rate_anchor = 1e-1;
 factors_num = 10;
 reg_w = 1e-3;
 reg_v = 1e-3;
@@ -25,7 +25,7 @@ anchors_num = 50;
 
 % Lipschitz to noise ratio
 % control the number of neighbours
-LC = 0.5;
+LC = 0.1 ;
 rmse_dadk_llfm_test = zeros(1, iter_num); 
 rmse_dadk_llfm_train = zeros(1, iter_num); 
 
@@ -64,10 +64,11 @@ for i=1:iter_num
 
     % get anchor points
     fprintf('Start K-means...\n');
-    [~, anchors, bcon_dadkllfm(i), SD, ~] = litekmeans(sparse_matrix(X_train), anchors_num);
-%     anchors = 0.01*rand(anchors_num, p);
+%     [~, anchors, bcon_dadkllfm(i), SD, ~] = litekmeans(sparse_matrix(X_train), anchors_num);
+%     sumD_dadkllfm(i) = sum(SD);
+    anchors = 0.01*rand(anchors_num, p);
 
-    sumD_dadkllfm(i) = sum(SD);
+    
     fprintf('K-means done..\n');
     
     % SGD

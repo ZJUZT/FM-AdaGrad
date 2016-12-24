@@ -9,7 +9,7 @@ y_max = max(train_Y);
 y_min = min(train_Y);
 
 % parameters 
-iter_num = 10 ;
+iter_num = 1 ;
 learning_rate = 0.1;
 learning_rate_anchor = 1e-2; 
 factors_num = 10;
@@ -18,7 +18,7 @@ reg_v = 1e-3;
 
 % locally linear
 % anchor points
-anchors_num = 50;
+anchors_num = 30;
 
 beta = 1;
 
@@ -26,7 +26,7 @@ bcon_dallfm = zeros(1,iter_num);
 sumD_dallfm = zeros(1,iter_num);
 
 % knn
-nearest_neighbor = 10;
+nearest_neighbor = 20;
 
 rmse_dallfm_test = zeros(1, iter_num);
 
@@ -46,8 +46,9 @@ for i=1:iter_num
     
     % get anchor points
     fprintf('Start K-means...\n');
-    [~, anchors, bcon_dallfm(i), SD, ~] = litekmeans(sparse_matrix(X_train), anchors_num);
-    sumD_dallfm(i) = sum(SD);
+%     [~, anchors, bcon_dallfm(i), SD, ~] = litekmeans(sparse_matrix(X_train), anchors_num);
+%     sumD_dallfm(i) = sum(SD);
+    anchors = 0.01* rand(anchors_num, p);
     fprintf('K-means done..\n');
     
     % SGD

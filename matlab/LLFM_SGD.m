@@ -18,11 +18,10 @@ reg_v = 1e-3;
 
 % locally linear
 % anchor points
-anchors_num = 50;
+anchors_num = 10;
 
 % knn
 nearest_neighbor = 10;
- 
 beta = 1.0;
 
 bcon_llfm = zeros(1,iter_num);
@@ -56,10 +55,10 @@ for i=1:iter_num
 
     % get anchor points
     fprintf('Start K-means...\n');
-    [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(sparse_matrix(X_train), anchors_num);
-    sumD_llfm(i) = sum(SD);
+%     [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(sparse_matrix(X_train), anchors_num);
+%     sumD_llfm(i) = sum(SD);
     
-%     anchors = 0.01* rand(anchors_num, p);
+    anchors = 0.01* rand(anchors_num, p);
     fprintf('K-means done..\n');
     
     % SGD
