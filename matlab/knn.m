@@ -7,7 +7,7 @@ function [ idx, weight ] = knn( clusters, sample, k ,beta)
 %   gamma:      weights 1 * k
 
 
-D = EuDist2(sparse(sample),clusters,0);
+D = EuDist2(sample,clusters,0);
 [D, idx] = sort(D);
 idx = idx(1:k);
 D = D(1:k);
