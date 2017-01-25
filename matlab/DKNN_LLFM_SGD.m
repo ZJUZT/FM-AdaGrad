@@ -16,18 +16,18 @@ iter_num = 1;
 learning_rate = 1e-2;
 learning_rate_anchor =1e-2;
 factors_num = 10;
-reg_w = 0;
-reg_v = 0; 
+reg_w = 1e-3;
+reg_v = 1e-3; 
 
-epoch = 1;
+epoch = 5;
   
 % locally linear
 % anchor points
-anchors_num = 10;
+anchors_num = 100;
 
 % Lipschitz to noise ratio
 % control the number of neighbours
-LC = 0.05;
+LC = 0.2;
 rmse_dadk_llfm_test = zeros(iter_num, epoch); 
 rmse_dadk_llfm_train = zeros(iter_num, epoch); 
 
@@ -67,7 +67,7 @@ for i=1:iter_num
     % get anchor points
     fprintf('Start K-means...\n');
     % [~, anchors, bcon_dadkllfm(i), SD, ~] = litekmeans(sparse_matrix(X_train), anchors_num);
-    [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num);
+    [~, anchors, ~, SD, ~] = litekmeans(train_X, anchors_num);
     sumD_dadkllfm(i) = sum(SD);
 %     anchors = 0.01*rand(anchors_num, p);
 
@@ -203,7 +203,7 @@ for i=1:iter_num
             s = 2 * LC * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
             base = -s * sum(weight.*y_anchor);
             base = base + repmat(y_anchor',1,p).* s*sum(weight);
-            anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * 2 *  err * base/(sum(weight).^2);
+            anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * (err_c-1)*y * base/(sum(weight).^2);
 
 
             for k=1:nearest_neighbor

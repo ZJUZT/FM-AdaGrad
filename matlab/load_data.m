@@ -24,8 +24,8 @@ adult_train = 'data/adult/training_data';
 adult_test = 'data/adult/test_data';
 
 %% 
-% training_data = ml_100k_training;
-% test_data = ml_100k_test;
+training_data = ml_100k_training;
+test_data = ml_100k_test;
 % 
 % training_data = ml_1m_training;
 % test_data = ml_1m_test;
@@ -36,8 +36,8 @@ adult_test = 'data/adult/test_data';
 % training_data = netflix_train_5K5K;
 % test_data = netflix_test_5K5K;
 
-training_data = adult_train;
-test_data = adult_test;
+% training_data = adult_train;
+% test_data = adult_test;
 
 load(training_data);
 load(test_data); 

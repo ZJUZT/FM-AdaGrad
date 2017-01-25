@@ -2,8 +2,21 @@
 % train_X, train_Y
 % load('training_data_1m');
 % load('test_data_1m');
-[num_sample, p] = size(train_X);
-% p = max(train_X(:,2));
+recommendation = 0;
+regression = 1;
+classification = 2;
+
+task = recommendation;
+
+if task == recommendation
+    [num_sample, ~] = size(train_X);
+    p = max(train_X(:,2));
+else
+    [num_sample, p] = size(train_X);
+end
+
+
+% 
 % y_max = max(train_Y);
 % y_min = min(train_Y);
 
@@ -25,7 +38,7 @@ rmse_fm_test = zeros(iter_num, epoch);
 rmse_fm_train = zeros(iter_num, epoch);
 accuracy_fm = zeros(iter_num, epoch);
 
-given_sample = 1e4;
+% given_sample = 1e4;
 
 % w0_ = 0;
 % W_ = 0;
@@ -38,9 +51,9 @@ for i=1:iter_num
     % do shuffle
     
     
-    w0 = 0.1*randn();
-    W = 0.1*randn(1,p);
-    V = 0.1*randn(p,factors_num);
+    w0 = randn();
+    W = randn(1,p);
+    V = randn(p,factors_num);
     
 %     w0_ = 0;
 %     W_ = zeros(1,p);
@@ -64,55 +77,89 @@ for i=1:iter_num
                 fprintf('%d iter(%d epoch)---processing %dth sample\n', i, t, j);
             end
 
-%             feature_idx = X_train(j,:);
-    %         X(feature_idx) = 1;
-%             y = Y_train(j,:);
+            if task==recommendation
+                feature_idx = X_train(j,:);
+                X = zeros(1, p);
+                X(feature_idx) = 1;
+                y = Y_train(j,:);
 
-            X = X_train(j,:);
-            y = Y_train(j,:);
+                factor_part = sum(V(feature_idx(1),:).*V(feature_idx(2),:));
+                y_predict = w0 + sum(W(feature_idx)) + factor_part;
+            else
+                X = X_train(j,:);
+                y = Y_train(j,:);
 
-            tmp = sum(repmat(X',1,factors_num).*V);
-            factor_part = (sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(V.^2))))/2;
-            y_predict = w0 + W*X' + factor_part;
+                tmp = sum(repmat(X',1,factors_num).*V);
+%                 % factor_part = 0;
+                factor_part = (sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(V.^2))))/2;
+                y_predict = w0 + W*X' + factor_part;
+            end
 
-            % simplify just for recommendation question
-%             factor_part = sum(V(feature_idx(1),:).*V(feature_idx(2),:));
-%             y_predict = w0 + sum(W(feature_idx)) + factor_part;
-
-            err_r = y_predict - y;
-
-            % classification
-            err_c = sigmf(y*y_predict,[1,0]);
+            if task == classification
+                err = sigmf(y*y_predict,[1,0]);
+            else
+                err = y_predict - y;
+            end
+            
 
 %             idx = (t-1)*num_sample + j;
 
             idx = j;
             if idx==1
-                % mse_fm_sgd(idx) = err^2;
-                mse_fm_sgd(idx) = -log(err_c);
+                if task == classification
+                    mse_fm_sgd(idx) = -log(err_c);
+                else
+                    mse_fm_sgd(idx) = err^2;
+                end
+                
             else
-                % mse_fm_sgd(idx) = (mse_fm_sgd(idx-1) * (idx - 1) + err^2)/idx;
-                mse_fm_sgd(idx) = (mse_fm_sgd(idx-1) * (idx - 1) -log(err_c))/idx;
+                if task == classification
+                    mse_fm_sgd(idx) = (mse_fm_sgd(idx-1) * (idx - 1) -log(err_c))/idx;
+                else
+                    mse_fm_sgd(idx) = (mse_fm_sgd(idx-1) * (idx - 1) + err^2)/idx;
+                end
             end
 
-            % rmse_fm_train(i, t) = mse_fm_sgd(idx)^0.5;
-            rmse_fm_train(i, t) = mse_fm_sgd(idx);
+            if task == classification
+                rmse_fm_train(i, t) = mse_fm_sgd(idx);
+            else
+                rmse_fm_train(i,t) = mse_fm_sgd(idx)^0.5;
+            end
+
 
             % update parameters
 %             w0_ = momentum*w0_ + learning_rate * (2 * err);
-            w0_ = learning_rate * (err_c-1)*y;
-            w0 = w0 - w0_;
-            W_ = learning_rate * ((err_c-1)*y*X + 2*reg_w*W);
-            W = W - W_;
-            V_ = learning_rate * ((err_c-1)*y*(repmat(X',1,factors_num).*(repmat(X*V,p,1)-repmat(X',1,factors_num).*V)) + 2*reg_v*V);
-            V = V - V_;
 
-% %             W_(feature_idx) = momentum*W_(feature_idx) + learning_rate * (2*err + 2*reg_w*W(feature_idx));
-%             W_ = learning_rate * (2*err + 2*reg_w*W(feature_idx));
-%             W(feature_idx) = W(feature_idx) - W_;
-% %             V_(feature_idx,:) = momentum*V_(feature_idx,:) + learning_rate * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))) + 2*reg_v*V(feature_idx,:));
-%             V_ = learning_rate * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))) + 2*reg_v*V(feature_idx,:));
-%             V(feature_idx,:) = V(feature_idx,:) - V_;
+            if task == recommendation
+                w0_ = learning_rate * 2* err;
+                w0 = w0 - w0_;
+    %             W_(feature_idx) = momentum*W_(feature_idx) + learning_rate * (2*err + 2*reg_w*W(feature_idx));
+                W_ = learning_rate * (2*err + 2*reg_w*W(feature_idx));
+                W(feature_idx) = W(feature_idx) - W_;
+    %             V_(feature_idx,:) = momentum*V_(feature_idx,:) + learning_rate * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))) + 2*reg_v*V(feature_idx,:));
+                V_ = learning_rate * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))) + 2*reg_v*V(feature_idx,:));
+                V(feature_idx,:) = V(feature_idx,:) - V_;
+            end
+
+            if task == classification
+                w0_ = learning_rate * (err-1)*y;
+                w0 = w0 - w0_;
+                W_ = learning_rate * ((err-1)*y*X + 2*reg_w*W);
+                W = W - W_;
+                V_ = learning_rate * ((err-1)*y*(repmat(X',1,factors_num).*(repmat(X*V,p,1)-repmat(X',1,factors_num).*V)) + 2*reg_v*V);
+                V = V - V_;
+            end
+            
+            if task == regression
+                w0_ = learning_rate * 2 * err;
+                w0 = w0 - w0_;
+                W_ = learning_rate * (2 * err * X + 2*reg_w*W);
+                W = W - W_;
+                V_ = learning_rate * (2*err*(repmat(X',1,factors_num).*(repmat(X*V,p,1)-repmat(X',1,factors_num).*V)) + 2*reg_v*V);
+                V = V - V_;
+            end
+
+
         end
     
     % validate
@@ -128,22 +175,25 @@ for i=1:iter_num
             tic;
             fprintf('%d epoch(validation)---processing %dth sample\n',i, k);
         end
-%         X = zeros(1, p);
-%         feature_idx = test_X(k,:);
-%         X(feature_idx) = 1;
-%         y = test_Y(k,:);
-        
-        X = test_X(k,:);
-        y = test_Y(k,:);
 
-        tmp = sum(repmat(X',1,factors_num).*V) ;
-        factor_part = (sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(V.^2))))/2;
-        y_predict = w0 + W*X' + factor_part;
+        if task==recommendation
+            X = zeros(1, p);
+            feature_idx = test_X(k,:);
+            X(feature_idx) = 1;
+            y = test_Y(k,:);
 
-        % simplify just for recommendation question
-%         factor_part = sum(V(feature_idx(1),:).*V(feature_idx(2),:));
-%         y_predict = w0 + sum(W(feature_idx)) + factor_part;
-        
+            % simplify just for recommendation question
+            factor_part = sum(V(feature_idx(1),:).*V(feature_idx(2),:));
+            y_predict = w0 + sum(W(feature_idx)) + factor_part;
+        else
+            X = test_X(k,:);
+            y = test_Y(k,:);
+            tmp = sum(repmat(X',1,factors_num).*V) ;
+            % factor_part = 0;
+            factor_part = (sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(V.^2))))/2;
+            y_predict = w0 + W*X' + factor_part;
+        end
+
         % prune
 %         if y_predict < y_min
 %             y_predict = y_min;
@@ -153,20 +203,31 @@ for i=1:iter_num
 %             y_predict = y_max;
 %         end
         
-        % err = y_predict - y;
-
-        err_c = sigmf(y*y_predict,[1,0]);
-
-        if (y_predict>=0 && y==1) || (y_predict<0&&y==-1)
-            correct_num = correct_num + 1;
+        if task == classification
+            err = sigmf(y*y_predict,[1,0]);
+            mse = mse - log(err_c);
+        else
+            err = y_predict - y;
+            mse = mse + err.^2;
         end
 
-        % mse = mse + err.^2;
-        mse = mse - log(err_c);
+        if task == classification
+            if (y_predict>=0 && y==1) || (y_predict<0&&y==-1)
+                correct_num = correct_num + 1;
+            end
+        end
     end
 
-    rmse_fm_test(i,t) = (mse / num_sample_test);
-    accuracy_fm(i,t) = correct_num/num_sample_test;
+    if task == classification
+        rmse_fm_test(i,t) = (mse / num_sample_test);
+    else
+        rmse_fm_test(i,t) = (mse / num_sample_test)^0.5;
+    end
+    
+    if task == classification
+        accuracy_fm(i,t) = correct_num/num_sample_test;
+    end
+    
     fprintf('validation done\n');
     end
 end
@@ -177,7 +238,7 @@ end
 
 %%
 % plot
-plot(mse_fm_sgd,'DisplayName','FM\_Train');
+plot(mse_fm_sgd.^0.5,'DisplayName','FM\_Train');
 legend('-DynamicLegend');
 xlabel('Number of samples seen');
 ylabel('RMSE');
