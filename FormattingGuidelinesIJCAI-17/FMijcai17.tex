@@ -106,10 +106,10 @@ with our objective and rather suboptimal as the prediction information is not us
 In this section we first discuss assumptions, then formulate the optimal estimation problem. Finally, we present our optimization approach for joint learning Locally Linear Factorization Machines.
 
 \section{Experiments}
-In this section, to verify the effectiveness of our proposed Adaptive LLFM, we will apply FM, LLFM, LLFM with adaptive anchor points, LLFM with adaptive anchor points and KNN on real-world datasets.
+In this section, to verify the effectiveness of our proposed Adaptive Locally Linear Factorization Machines algorithm, we will compare 3 different adaptive algorithm to the original Factorization Machines algorithm on real-world datasets.
 \subsection{Experimental Setup}
 \subsubsection{Datasets}
-We conduct our experiments on five real-wrold datasets, including MovieLens100k, MovieLens1M, Last.fm, AmazonInstantVideo and Netflix. To speed up the experiments, for Last.fm and Netflix dataset, we follow the same procedures as in \cite{pan2013gbpr} by randomly sampling a subset of users from the user pool and a subset of items from the item pool. The statistics of the datasets after preprocesing are shown in Table 1.
+We conduct our experiments on five real-wrold datasets, including MovieLens100k, MovieLens1M, AmazonInstantVideo and Netflix. To speed up the experiments, for  Netflix dataset, we follow the same procedures as in \cite{pan2013gbpr} by randomly sampling a subset of users from the user pool and a subset of items from the item pool. The statistics of the datasets after preprocesing are shown in Table 1.
 \begin{table}
 	\caption{Basic statistics of datasets}
 	\begin{tabular}{l*{6}{c}r}
@@ -122,7 +122,12 @@ We conduct our experiments on five real-wrold datasets, including MovieLens100k,
 	\end{tabular}
 \end{table}
 \subsubsection{Evaluation Metrics}
-We use RMSE metric to evaluate the overall error 
+To illustrate the recommendation prediction quality of different methods, we use RMSE metric to evaluate the overall error.
+\subsubsection{Methods}
+In our experiments, we compare our 3 different locally linear Factorization Machines to baseline method (FM).\\
+\textbf{Locally Linear FM(LLFM)}:FM with fixed anchor points which initialized by K-means.\\
+\textbf{LLFM with Adaptive Anchor Points(LLFMAAP)}:Update anchor points during learning phase. The anchor points are also initialized by K-means.\\ 
+\textbf{LLFMAAP with Adaptive KNN(LLFMAAPK)}:Choose the optimal number of nearest neighbors of KNN for each sample. Also using adaptive anchor points like the former algorithm.
 \section{Conclusion}
 %% The file named.bst is a bibliography style file for BibTeX 0.99c
 \bibliographystyle{named}

@@ -22,20 +22,20 @@ end
 
 % parameters  
 iter_num = 1;
-learning_rate = 1e-3;
+learning_rate = 1e-1;
 factors_num = 10;
-reg_w = 0;
-reg_v = 0; 
+reg_w = 1;
+reg_v = 1; 
 
 % locally linear
 % anchor points
-anchors_num = 10;
+anchors_num = 100;
 
 
 epoch = 1;
 
 % knn
-nearest_neighbor = 3;
+nearest_neighbor = 10;
 beta = 1;
 
 bcon_llfm = zeros(1,iter_num);
@@ -57,9 +57,13 @@ for i=1:iter_num
     % do shuffle
     
     
-    w0 = randn(1, anchors_num);
-    W = randn(p,anchors_num);
+    w0 = zeros(1, anchors_num);
+    W = zeros(p,anchors_num);
     V = randn(p,factors_num,anchors_num);
+
+%     w0 = repmat(w0, 1, anchors_num);
+%     W = repmat(W', 1, anchors_num);
+%     V = repmat(V,1,1,anchors_num);
 
     mse_llfm_sgd = zeros(1,num_sample);
     loss = zeros(1,epoch*num_sample);
@@ -72,7 +76,7 @@ for i=1:iter_num
 %     [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num);
 %     sumD_llfm(i) = sum(SD);
     
-%     anchors = 0.01* rand(anchors_num, p);
+%     anchors = 0.1* rand(anchors_num, p);
     fprintf('K-means done..\n');
     
     % SGD

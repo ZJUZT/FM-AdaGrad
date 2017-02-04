@@ -22,16 +22,16 @@ end
 iter_num = 1;
 epoch = 1;
 
-learning_rate = 1e-2;
-learning_rate_anchor = 1e-2;
+learning_rate = 1e-1;
+learning_rate_anchor = 1e-3;
 factors_num = 10;
-reg_w = 0;
-reg_v = 0;
+reg_w = 1;
+reg_v = 1;
 
 
 % locally linear
 % anchor points
-anchors_num = 10;
+anchors_num = 100;
 
 beta = 1;
 
@@ -40,7 +40,7 @@ sumD_dallfm = zeros(iter_num, epoch);
 accuracy_dallfm = zeros(iter_num, epoch);
 
 % knn
-nearest_neighbor = 3;
+nearest_neighbor = 10 ;
 
 rmse_dallfm_test = zeros(iter_num,epoch);
 
@@ -48,8 +48,8 @@ rmse_dallfm_train = zeros(iter_num,epoch);
 
 for i=1:iter_num
     
-    w0 = randn(1, anchors_num);
-    W = randn(p,anchors_num);
+    w0 = zeros(1, anchors_num);
+    W = zeros(p,anchors_num);
     V = randn(p,factors_num,anchors_num);
 
     mse_da_llfm_sgd = zeros(1,num_sample);
@@ -57,10 +57,10 @@ for i=1:iter_num
     
     % get anchor points
     fprintf('Start K-means...\n');
-    [~, anchors, bcon_dallfm(i), SD, ~] = litekmeans(sparse_matrix(X_train), anchors_num);
+%     [~, anchors, bcon_dallfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num);
     % [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num);
-    sumD_dallfm(i) = sum(SD);
-%     anchors = 0.01* randn(anchors_num, p);
+%     sumD_dallfm(i) = sum(SD);
+    anchors = randn(anchors_num, p);
     fprintf('K-means done..\n');
     
     % SGD
@@ -135,9 +135,9 @@ for i=1:iter_num
 
             % rmse_dallfm_train(i,t) = mse_da_llfm_sgd(idx);
             if task == classification
-                mse_da_llfm_sgd(i, t) = mse_da_llfm_sgd(idx);
+                rmse_dallfm_train(i, t) = mse_da_llfm_sgd(idx);
             else
-                mse_da_llfm_sgd(i, t) = mse_da_llfm_sgd(idx)^0.5;
+                rmse_dallfm_train(i, t) = mse_da_llfm_sgd(idx)^0.5;
             end
 
             % update parameters
@@ -186,8 +186,6 @@ for i=1:iter_num
             anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * (2*err * base/(sum(weight).^2));
 
         end
-    
-    
     
         % validate
         mse_dallfm_test = 0.0;

@@ -21,12 +21,12 @@ end
 % y_min = min(train_Y);
 
 % parameters
-iter_num = 1;
+iter_num = 5;
 learning_rate = 1e-2;
 factors_num = 10;
 
-reg_w = 1e-3;
-reg_v = 1e-3;
+reg_w = 1;
+reg_v = 1;
 
 epoch = 1;
 
@@ -51,8 +51,8 @@ for i=1:iter_num
     % do shuffle
     
     
-    w0 = randn();
-    W = randn(1,p);
+    w0 = 0;
+    W = zeros(1,p);
     V = randn(p,factors_num);
     
 %     w0_ = 0;
@@ -82,7 +82,7 @@ for i=1:iter_num
                 X = zeros(1, p);
                 X(feature_idx) = 1;
                 y = Y_train(j,:);
-
+%                 factor_part = 0;
                 factor_part = sum(V(feature_idx(1),:).*V(feature_idx(2),:));
                 y_predict = w0 + sum(W(feature_idx)) + factor_part;
             else
@@ -90,8 +90,8 @@ for i=1:iter_num
                 y = Y_train(j,:);
 
                 tmp = sum(repmat(X',1,factors_num).*V);
-%                 % factor_part = 0;
                 factor_part = (sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(V.^2))))/2;
+%                 factor_part = 0;
                 y_predict = w0 + W*X' + factor_part;
             end
 
@@ -133,10 +133,10 @@ for i=1:iter_num
             if task == recommendation
                 w0_ = learning_rate * 2* err;
                 w0 = w0 - w0_;
-    %             W_(feature_idx) = momentum*W_(feature_idx) + learning_rate * (2*err + 2*reg_w*W(feature_idx));
+%     %             W_(feature_idx) = momentum*W_(feature_idx) + learning_rate * (2*err + 2*reg_w*W(feature_idx));
                 W_ = learning_rate * (2*err + 2*reg_w*W(feature_idx));
                 W(feature_idx) = W(feature_idx) - W_;
-    %             V_(feature_idx,:) = momentum*V_(feature_idx,:) + learning_rate * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))) + 2*reg_v*V(feature_idx,:));
+%                 V_(feature_idx,:) = momentum*V_(feature_idx,:) + learning_rate * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))) + 2*reg_v*V(feature_idx,:));
                 V_ = learning_rate * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))) + 2*reg_v*V(feature_idx,:));
                 V(feature_idx,:) = V(feature_idx,:) - V_;
             end
@@ -181,16 +181,16 @@ for i=1:iter_num
             feature_idx = test_X(k,:);
             X(feature_idx) = 1;
             y = test_Y(k,:);
-
+%             factor_part = 0;
             % simplify just for recommendation question
             factor_part = sum(V(feature_idx(1),:).*V(feature_idx(2),:));
             y_predict = w0 + sum(W(feature_idx)) + factor_part;
-        else
+        else 
             X = test_X(k,:);
             y = test_Y(k,:);
             tmp = sum(repmat(X',1,factors_num).*V) ;
-            % factor_part = 0;
-            factor_part = (sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(V.^2))))/2;
+%             factor_part = 0;
+            factor_part = (sum(tmp.^2) - sum(sum (repmat((X').^2,1,factors_num).*(V.^2))))/2;
             y_predict = w0 + W*X' + factor_part;
         end
 
