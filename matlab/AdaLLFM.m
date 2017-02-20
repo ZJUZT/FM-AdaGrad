@@ -28,6 +28,9 @@ if nargin < 4
     error('AdaLLFM:TooFewInputs','At least four input arguments required.');
 end
 
+rand('state',0); 
+randn('state',0);
+
 recommendation = 0;
 regression = 1;
 classification = 2;
@@ -56,8 +59,9 @@ else
     [num_sample, p] = size(train_X);
 end
 
-training_loss = zeros(iter, num_sample * epoch);
+training_loss = zeros(iter, epoch);
 test_loss = zeros(iter, epoch);
+accuracy = zeros(iter, epoch);
 
 % wanna keep record of every sample's number of nn
 if algorithm==adaptive_knn
@@ -70,14 +74,14 @@ for i=1:iter
     
     w0 = zeros(1, anchors_num);
     W = zeros(p,anchors_num);
-    V = randn(p,factors_num,anchors_num);
+    V = 0.1*randn(p,factors_num,anchors_num);
     
     % get anchor points
     fprintf('Start K-means...\n');
     if task == recommendation
-        [~, anchors, ~, ~, ~] = litekmeans(sparse_matrix(train_X), anchors_num);
+        [~, anchors, ~, ~, ~] = litekmeans(sparse_matrix(train_X), anchors_num,  'Replicates', 10, 'MaxIter', 1000);
     else
-        [~, anchors, ~, ~, ~] = litekmeans(train_X, anchors_num);
+        [~, anchors, ~, ~, ~] = litekmeans(train_X, anchors_num,  'Replicates', 10, 'MaxIter', 1000);
     end
     %     anchors = 0.01* randn(anchors_num, p);
     fprintf('K-means done..\n');
@@ -89,12 +93,14 @@ for i=1:iter
         re_idx = randperm(num_sample);
         X_train = train_X(re_idx,:);
         Y_train = train_Y(re_idx);
+        loss = zeros(1, num_sample);
+
         for j=1:num_sample
             
             if mod(j,1e3)==0
                 toc;
                 tic;
-                fprintf('%d iter(%d epoch)---processing %dth sample\n', i, t, j);
+                fprintf('(algorithm%d)%d iter(%d epoch)---processing %dth sample\n',algorithm, i, t, j);
             end
             
             if task == recommendation
@@ -107,13 +113,13 @@ for i=1:iter
                 y = Y_train(j,:);
             end
             
-            idx = (t-1)*num_sample + j;
+            
             % pick anchor points
             if algorithm==adaptive_knn
                 [anchor_idx, D, lam] = Dynamic_KNN(anchors, X, beta);
                 
                 nearest_neighbor = length(anchor_idx);
-                nn_num(idx) = nearest_neighbor;
+                nn_num(i,(t-1)*num_sample + j) = nearest_neighbor;
                 weight = lam - D;
                 gamma = weight/sum(weight);
             else
@@ -144,19 +150,19 @@ for i=1:iter
                 err = y_predict - y;
             end
             
-            
+            idx = j;
             if idx==1
                 if task == classification
-                    training_loss(idx) = -log(err);
+                    loss(idx) = -log(err);
                 else
-                    training_loss(idx) = abs(err);
+                    loss(idx) = abs(err);
                 end
                 
             else
                 if task == classification
-                    training_loss(idx) = (training_loss(idx-1) * (idx - 1) -log(err))/idx;
+                    loss(idx) = (loss(idx-1) * (idx - 1) -log(err))/idx;
                 else
-                    training_loss(idx) = ((training_loss(idx-1)^2 * (idx - 1) + err^2)/idx)^0.5;
+                    loss(idx) = ((loss(idx-1)^2 * (idx - 1) + err^2)/idx)^0.5;
                 end
             end
             
@@ -206,21 +212,33 @@ for i=1:iter
                 s = 2 * beta * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
                 base = -s * sum(weight.*y_anchor);
                 base = base + repmat(y_anchor',1,p).* s*sum(weight);
-                anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * 2 * err * base/(sum(weight).^2);
+                if task == classification
+                    anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * (err-1) * y * base/(sum(weight).^2);
+                else
+                    anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * 2 * err * base/(sum(weight).^2);
+                end
+                
             end
             
             if algorithm==adaptive_anchor
                 s = 2 * beta * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :)).*repmat(weight, p, 1)';
                 base = -s * sum(weight.*y_anchor);
                 base = base + repmat(y_anchor',1,p).* s*sum(weight);
-                anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * (2*err * base/(sum(weight).^2));
+                if task == classification
+                    anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * ((err-1) * y * base/(sum(weight).^2));
+                else
+                    anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * (2*err * base/(sum(weight).^2));
+                end
             end
+
+            training_loss(i,t) = loss(end);
         end
         
         % validate
         fprintf('validating\n');
         
         mse = 0.0;
+        correct_num = 0;
         [num_sample_test, ~] = size(test_X);
         
         for j=1:num_sample_test
@@ -275,6 +293,13 @@ for i=1:iter
                 err = y_predict - y;
                 mse = mse + err.^2;
             end
+
+            if task == classification
+                if (y_predict>=0 && y==1) || (y_predict<0 && y==-1)
+                    correct_num = correct_num + 1;
+                end
+            end
+
         end
         
         if task == classification
@@ -282,11 +307,22 @@ for i=1:iter
         else
             test_loss(i,t) = (mse / num_sample_test)^0.5;
         end
+
+        if task == classification
+            accuracy(i,t) = correct_num/num_sample_test;
+        end
         
         fprintf('validation done\n');
     end
 end
 
-if algorithm==adaptive_knn
+if algorithm==adaptive_knn && task == classification
+    varargout{1} = accuracy;
+    varargout{2} = nn_num;
+elseif algorithm==adaptive_knn
     varargout{1} = nn_num;
+elseif task==classification
+    varargout{1} = accuracy;
+else
+    
 end

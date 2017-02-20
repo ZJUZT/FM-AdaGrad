@@ -1,4 +1,4 @@
-function [training_loss, test_loss] = FM(train_X, train_Y, test_X, test_Y, varargin)
+function [training_loss, test_loss, varargout] = FM(train_X, train_Y, test_X, test_Y, varargin)
 % FM: Standard Factorization Machines
 %
 %	training_loss : cumulative training loss w.r.t. number of samples seen, log loss for classfication, rmse otherwise
@@ -23,6 +23,9 @@ if nargin < 4
     error('FM:TooFewInputs','At least four input arguments required.');
 end
 
+rand('state',0); 
+randn('state',0);
+
 recommendation = 0;
 regression = 1;
 classification = 2;
@@ -38,15 +41,17 @@ else
     [num_sample, p] = size(train_X);
 end
 
-training_loss = zeros(iter, num_sample * epoch);
+training_loss = zeros(iter, epoch);
 test_loss = zeros(iter, epoch);
+accuracy = zeros(iter, epoch);
+
 
 for i=1:iter
     
     tic;
     w0 = 0;
     W = zeros(1,p);
-    V = randn(p,factors_num);
+    V = 0.1*randn(p,factors_num);
     
     % SGD
     
@@ -56,6 +61,7 @@ for i=1:iter
         re_idx = randperm(num_sample);
         X_train = train_X(re_idx,:);
         Y_train = train_Y(re_idx);
+        loss = zeros(1, num_sample);
         for j=1:num_sample
             
             if mod(j,1e3)==0
@@ -89,19 +95,20 @@ for i=1:iter
             end
             
             
-            idx = (t-1)*num_sample + j;
+            % idx = (t-1)*num_sample + j;
+            idx = j;
             if idx==1
                 if task == classification
-                    training_loss(idx) = -log(err);
+                    loss(idx) = -log(err);
                 else
-                    training_loss(idx) = abs(err);
+                    loss(idx) = abs(err);
                 end
                 
             else
                 if task == classification
-                    training_loss(idx) = (training_loss(idx-1) * (idx - 1) -log(err))/idx;
+                    loss(idx) = (loss(idx-1) * (idx - 1) -log(err))/idx;
                 else
-                    training_loss(idx) = ((training_loss(idx-1)^2 * (idx - 1) + err^2)/idx)^0.5;
+                    loss(idx) = ((loss(idx-1)^2 * (idx - 1) + err^2)/idx)^0.5;
                 end
             end
             
@@ -134,11 +141,14 @@ for i=1:iter
                 V = V - V_;
             end
         end
+
+        training_loss(i,t) = loss(end);
         
         % validate
         fprintf('validating\n');
         
         mse = 0.0;
+        correct_num = 0;
         [num_sample_test, ~] = size(test_X);
         
         for k=1:num_sample_test
@@ -172,6 +182,12 @@ for i=1:iter
                 err = y_predict - y;
                 mse = mse + err.^2;
             end
+
+            if task == classification
+                if (y_predict>=0 && y==1) || (y_predict<0&&y==-1)
+                    correct_num = correct_num + 1;
+                end
+            end
         end
         
         if task == classification
@@ -179,10 +195,17 @@ for i=1:iter
         else
             test_loss(i,t) = (mse / num_sample_test)^0.5;
         end
+
+        if task == classification
+            accuracy(i,t) = correct_num/num_sample_test;
+        end
         
         fprintf('validation done\n');
     end
 end
+
+varargout{1} = accuracy;
+
 
 
 

@@ -6,7 +6,10 @@ recommendation = 0;
 regression = 1;
 classification = 2;
 
-task = recommendation;
+rand('state',1); 
+randn('state',1);
+
+task = classification;
 
 if task == recommendation
     [num_sample, ~] = size(train_X);
@@ -20,18 +23,18 @@ end
 
 % parameters 
 iter_num = 1;
-epoch = 1;
+epoch = 3;
 
-learning_rate = 1e-1;
-learning_rate_anchor = 1e-3;
+learning_rate = 5e-2;
+learning_rate_anchor = 5e-2;
 factors_num = 10;
-reg_w = 1;
-reg_v = 1;
+reg_w = 0;
+reg_v = 0;
 
-
+% T = 1e5  ;
 % locally linear
 % anchor points
-anchors_num = 100;
+anchors_num = 20 ;
 
 beta = 1;
 
@@ -40,38 +43,41 @@ sumD_dallfm = zeros(iter_num, epoch);
 accuracy_dallfm = zeros(iter_num, epoch);
 
 % knn
-nearest_neighbor = 10 ;
+nearest_neighbor = 5 ;
 
 rmse_dallfm_test = zeros(iter_num,epoch);
 
 rmse_dallfm_train = zeros(iter_num,epoch);
-
+ 
 for i=1:iter_num
     
     w0 = zeros(1, anchors_num);
     W = zeros(p,anchors_num);
-    V = randn(p,factors_num,anchors_num);
+    V = 0.1*randn(p,factors_num,anchors_num);
 
     mse_da_llfm_sgd = zeros(1,num_sample);
     loss = zeros(1,num_sample);
     
     % get anchor points
     fprintf('Start K-means...\n');
-%     [~, anchors, bcon_dallfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num);
-    % [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num);
+%     [~, anchors, bcon_dallfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num, 'MaxIter', 1000, 'Replicates', 10);
+    [~, anchors, ~, SD, ~] = litekmeans(train_X, anchors_num,'MaxIter', 1000, 'Replicates', 10);
 %     sumD_dallfm(i) = sum(SD);
-    anchors = randn(anchors_num, p);
+%     anchors = 0.1*randn(anchors_num, p);
     fprintf('K-means done..\n');
     
     % SGD
     tic;
+    % do shuffle
+    re_idx = randperm(num_sample);
+    X_train = train_X(re_idx,:);
+    Y_train = train_Y(re_idx);
     
     for t=1:epoch
-        % do shuffle
-        re_idx = randperm(num_sample);
-        X_train = train_X(re_idx,:);
-        Y_train = train_Y(re_idx);
+
     
+%         X_train = train_X;
+%         Y_train = train_Y;
         for j=1:num_sample
             if mod(j,1e3)==0
                 toc;
@@ -79,6 +85,7 @@ for i=1:iter_num
                 fprintf('%d iter(%d epoch)---processing %dth sample\n', i, t, j);
             end
 
+%             r = randi([1,num_sample]);
             if task == recommendation
                 feature_idx = X_train(j,:);
                 X = zeros(1, p);
@@ -117,8 +124,8 @@ for i=1:iter_num
                 err = y_predict - y;
             end
 
-%             idx = (t-1)*num_sample + j;
-            idx = j;
+            idx = (t-1)*num_sample + j;
+%             idx = j;
             if idx==1
                 if task == classification
                     mse_da_llfm_sgd(idx) = -log(err);
@@ -143,16 +150,16 @@ for i=1:iter_num
             % update parameters
             if task == recommendation
                 tmp_w0 = w0(anchor_idx);
-                w0(anchor_idx) = tmp_w0 - learning_rate * gamma .* 2 * err;
+                w0(anchor_idx) = tmp_w0 - learning_rate *  (2 * err * gamma + 2 * reg_w*tmp_w0);
                 tmp_W = W(feature_idx,anchor_idx);
-                W(feature_idx,anchor_idx) =  tmp_W - learning_rate * repmat(gamma,2,1).*(2*err + 2*reg_w*tmp_W);
+                W(feature_idx,anchor_idx) =  tmp_W - learning_rate *(2*err * repmat(gamma,2,1) + 2*reg_w*tmp_W);
 
                 for k=1:nearest_neighbor
                     temp_V = squeeze(V(feature_idx,:,anchor_idx(k)));
                    
                       V(feature_idx,:,anchor_idx(k)) = ...
-                          temp_V - learning_rate * gamma(k)* ...
-                          (2*err*(repmat(sum(temp_V),2,1)- temp_V) + 2*reg_v*temp_V);
+                          temp_V - learning_rate * ...
+                          (2*err*gamma(k)*(repmat(sum(temp_V),2,1)- temp_V) + 2*reg_v*temp_V);
                 end
 
             end
@@ -183,7 +190,7 @@ for i=1:iter_num
             s = 2 * beta * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :)).*repmat(weight, p, 1)';
             base = -s * sum(weight.*y_anchor);
             base = base + repmat(y_anchor',1,p).* s*sum(weight);
-            anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * (2*err * base/(sum(weight).^2));
+            anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * ((err-1)*y* base/(sum(weight).^2));
 
         end
     
@@ -194,8 +201,8 @@ for i=1:iter_num
         tic;
         for j=1:num_sample_test
             if mod(j,1000)==0
-                toc;
-                tic;
+%                 toc;
+%                 tic;
                 fprintf('%d epoch(validation)---processing %dth sample\n',i, j);
              end
 
@@ -238,7 +245,7 @@ for i=1:iter_num
 
             if task == classification
                 err = sigmf(y*y_predict,[1,0]);
-                mse_dallfm_test = mse_dallfm_test - log(err_c);
+                mse_dallfm_test = mse_dallfm_test - log(err);
             else
                 err = y_predict - y;
                 mse_dallfm_test = mse_dallfm_test + err.^2;
@@ -254,6 +261,7 @@ for i=1:iter_num
         else
             rmse_dallfm_test(i, t) = (mse_dallfm_test / num_sample_test)^0.5;
         end
+        toc;
     end
 end
 
@@ -262,18 +270,18 @@ end
 
 %%
 % plot
-plot(mse_da_llfm_sgd.^0.5,'DisplayName','DALLFM\_Train');
+plot(mse_da_llfm_sgd,'DisplayName','LLFMAAP');
 legend('-DynamicLegend');
 xlabel('Number of samples seen');
 ylabel('RMSE');
 hold on;
 grid on;
 %%
-plot(rmse_dallfm_train,'DisplayName','DALLFM\_Train');
+plot(rmse_dallfm_train,'DisplayName','LLFMAAP');
 legend('-DynamicLegend');
 hold on;
-plot(rmse_dallfm_test,'DisplayName','DALLFM\_Test');
-legend('-DynamicLegend');
+% plot(rmse_dallfm_test,'DisplayName','DALLFM\_Test');
+% legend('-DynamicLegend');
 xlabel('epoch');
 ylabel('RMSE');
 % legend('DALLFM\_Train','DALLFM\_Test');

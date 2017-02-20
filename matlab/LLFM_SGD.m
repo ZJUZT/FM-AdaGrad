@@ -6,7 +6,10 @@ recommendation = 0;
 regression = 1;
 classification = 2;
 
-task = recommendation;
+rand('state',1); 
+randn('state',1);
+
+task = classification;
 
 if task == recommendation
     [num_sample, ~] = size(train_X);
@@ -16,26 +19,25 @@ else
 end
 % p = max(train_X(:,2));
 
-
 % y_max = max(train_Y);
 % y_min = min(train_Y);
 
 % parameters  
-iter_num = 1;
-learning_rate = 1e-1;
+iter_num = 1 ;
+learning_rate = 5e-2;
 factors_num = 10;
-reg_w = 1;
-reg_v = 1; 
+reg_w = 0;
+reg_v = 0; 
 
 % locally linear
 % anchor points
-anchors_num = 100;
+anchors_num = 20 ;
 
 
-epoch = 1;
+epoch = 3;
 
 % knn
-nearest_neighbor = 10;
+nearest_neighbor = 5;
 beta = 1;
 
 bcon_llfm = zeros(1,iter_num);
@@ -52,6 +54,11 @@ accuracy_llfm = zeros(iter_num, epoch);
 % % anchors = train_X(idx(1:anchors_num), :);
 % anchors = 0.01* rand(anchors_num, p);
 
+% T = 1e5;
+
+re_idx = randperm(num_sample);
+X_train = train_X(re_idx,:);
+Y_train = train_Y(re_idx);
 
 for i=1:iter_num
     % do shuffle
@@ -59,24 +66,22 @@ for i=1:iter_num
     
     w0 = zeros(1, anchors_num);
     W = zeros(p,anchors_num);
-    V = randn(p,factors_num,anchors_num);
+    V = 0.1*randn(p,factors_num,anchors_num);
 
-%     w0 = repmat(w0, 1, anchors_num);
-%     W = repmat(W', 1, anchors_num);
-%     V = repmat(V,1,1,anchors_num);
-
-    mse_llfm_sgd = zeros(1,num_sample);
+    mse_llfm_sgd = zeros(1,num_sample);        
     loss = zeros(1,epoch*num_sample);
     
     
 
     % get anchor points
     fprintf('Start K-means...\n');
-    [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num);
-%     [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num);
+%     [label, anchors, bcon_llfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num, 'MaxIter', 1000, 'Replicates', 10);
+    [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num,'MaxIter', 1000, 'Replicates', 10);
 %     sumD_llfm(i) = sum(SD);
+
+%     [label, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num);
     
-%     anchors = 0.1* rand(anchors_num, p);
+%     anchors = 0.1* randn(anchors_num, p);
     fprintf('K-means done..\n');
     
     % SGD
@@ -84,9 +89,11 @@ for i=1:iter_num
     
     for t=1:epoch
         
-        re_idx = randperm(num_sample);
-        X_train = train_X(re_idx,:);
-        Y_train = train_Y(re_idx);
+%         re_idx = randperm(num_sample);
+%         X_train = train_X(re_idx,:);
+%         Y_train = train_Y(re_idx);
+%         X_train = train_X;
+%         Y_train = train_Y;
         
         for j=1:num_sample
             if mod(j,1e3)==0
@@ -95,6 +102,7 @@ for i=1:iter_num
                 fprintf('%d iter(%d epoch)---processing %dth sample\n', i,t,j);
             end
 
+%             r = randi([1,num_sample]);
             if task == recommendation
                 feature_idx = X_train(j,:);
                 X = zeros(1, p);
@@ -117,7 +125,7 @@ for i=1:iter_num
                     y_anchor(k) = sum(temp_V(1,:).*temp_V(2,:)) + w0(anchor_idx(k)) + sum(W(feature_idx,anchor_idx(k)));
                 end
             else
-                for k=1:nearest_neighbor                   
+                for k=1:nearest_neighbor               
                     temp_V = V(:,:,anchor_idx(k));
                     tmp = sum(repmat(X',1,factors_num).*temp_V);
                     y_anchor(k) = (sum(tmp.^2) - sum(sum(repmat(X'.^2,1,factors_num).*(temp_V.^2))))/2 + w0(anchor_idx(k)) + X*W(:,anchor_idx(k));
@@ -130,17 +138,9 @@ for i=1:iter_num
     %         factor_part = gamma * (squeeze(sum(sum(tmp.^2,1),2) -(sum(sum((X_.^2).*(temp_V.*2),1),2))));
 
             y_predict = gamma * y_anchor';
-
-    %         fprintf('%f\n', y_predict);
-
-            % prune
-    %         if y_predict < y_min
-    %             y_predict = y_min;
-    %         end
-    %         
-    %         if y_predict > y_max
-    %             y_predict = y_max;
-    %         end
+            
+%             y_predict = min(y_predict, y_max);
+%             y_predict = max(y_predict, y_min);
 
             if task == classification
                 err = sigmf(y*y_predict,[1,0]);
@@ -148,14 +148,14 @@ for i=1:iter_num
                 err = y_predict - y;
             end
 
-    %         idx = (i-1)*num_sample + j;
+            idx = (t-1)*num_sample + j;
     %         loss(idx) = err^2;
     %         mse_llfm_sgd(idx) = sum(loss)/idx;
 %             idx = (t-1)*num_sample + j;
-            idx = j;
+%             idx = j;
             if idx==1
                 if task == classification
-                    mse_llfm_sgd(idx) = -log(err_c);
+                    mse_llfm_sgd(idx) = -log(err);
                 else
                     mse_llfm_sgd(idx) = err^2;
                 end
@@ -176,28 +176,28 @@ for i=1:iter_num
             % update parameters
             if task == recommendation
                 tmp_w0 = w0(anchor_idx);
-                w0(anchor_idx) = tmp_w0 - learning_rate * gamma .* 2 * err;
+                w0(anchor_idx) = tmp_w0 - learning_rate *  (2 * err * gamma + 2 * reg_w*tmp_w0);
                 tmp_W = W(feature_idx,anchor_idx);
-                W(feature_idx,anchor_idx) =  tmp_W - learning_rate * repmat(gamma,2,1).*(2*err + 2*reg_w*tmp_W);
+                W(feature_idx,anchor_idx) =  tmp_W - learning_rate *(2*err * repmat(gamma,2,1) + 2*reg_w*tmp_W);
 
                 for k=1:nearest_neighbor
                     temp_V = squeeze(V(feature_idx,:,anchor_idx(k)));
                    
                       V(feature_idx,:,anchor_idx(k)) = ...
-                          temp_V - learning_rate * gamma(k)* ...
-                          (2*err*(repmat(sum(temp_V),2,1)- temp_V) + 2*reg_v*temp_V);
+                          temp_V - learning_rate * ...
+                          (2*err*gamma(k)*(repmat(sum(temp_V),2,1)- temp_V) + 2*reg_v*temp_V);
                 end
 
-            end
+            end  
 
             if task == classification
                 tmp_w0 = w0(anchor_idx);
-                w0(anchor_idx) = tmp_w0 - learning_rate * gamma .* (err-1)*y;
+                w0(anchor_idx) = tmp_w0 - learning_rate * (gamma .* (err-1)*y + 2*reg_w*tmp_w0);
                 tmp_W = W(:,anchor_idx);
-                W(:,anchor_idx) = tmp_W - learning_rate * repmat(gamma,p,1) .* ((err-1)*y*repmat(X',[1,nearest_neighbor]) + 2*reg_w*tmp_W);
+                W(:,anchor_idx) = tmp_W - learning_rate * ((err-1)*repmat(gamma,p,1)*y.*repmat(X',[1,nearest_neighbor]) + 2*reg_w*tmp_W);
                 for k=1:nearest_neighbor
                     temp_V = squeeze(V(:,:,anchor_idx(k)));
-                    V(:,:,anchor_idx(k)) = temp_V - learning_rate * gamma(k) * ((err-1)*y*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)) + 2*reg_v*temp_V);
+                    V(:,:,anchor_idx(k)) = temp_V - learning_rate * ((err-1)*gamma(k)*y*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)) + 2*reg_v*temp_V);
                 end
             end
 
@@ -227,8 +227,8 @@ for i=1:iter_num
         tic;
         for j=1:num_sample_test
             if mod(j,1e3)==0
-                toc;
-                tic;
+%                 toc;
+%                 tic;
                 fprintf('%d epoch(validation)---processing %dth sample\n',i, j);
              end
 
@@ -276,7 +276,7 @@ for i=1:iter_num
 
             if task == classification
                 err = sigmf(y*y_predict,[1,0]);
-                mse_llfm_test = mse_llfm_test - log(err_c);
+                mse_llfm_test = mse_llfm_test - log(err);
             else
                 err = y_predict - y;
                 mse_llfm_test = mse_llfm_test + err.^2;
@@ -292,6 +292,7 @@ for i=1:iter_num
         else
             rmse_llfm_test(i, t) = (mse_llfm_test / num_sample_test)^0.5;
         end
+        toc;
     end
 end
 
@@ -300,7 +301,7 @@ end
 
 %%
 % plot
-plot(mse_llfm_sgd.^0.5,'DisplayName','LLFM\_Train');
+plot(mse_llfm_sgd,'DisplayName','LLFM');
 legend('-DynamicLegend');
 xlabel('Number of samples seen');
 ylabel('RMSE'); 
@@ -308,13 +309,20 @@ grid on;
 hold on;
 
 %%
-plot(rmse_llfm_train,'DisplayName','LLFM\_Train');
+plot(rmse_llfm_train,'DisplayName','LLFM');
 legend('-DynamicLegend');
 hold on;
-plot(rmse_llfm_test,'DisplayName','LLFM\_Test');
-legend('-DynamicLegend');
+% plot(rmse_llfm_test,'DisplayName','LLFM\_Test');
+% legend('-DynamicLegend');
 xlabel('epoch');
 ylabel('RMSE');
 % legend('LLFM\_Train','LLFM\_Test');
 title('LLFM\_SGD');
 grid on;
+
+%%
+% X_ = zeros(num_sample,p);
+% for i=1:num_sample
+%     X_(i,X_train(i,:)) = 1;
+% end
+    

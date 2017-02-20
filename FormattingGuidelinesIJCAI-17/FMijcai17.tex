@@ -10,6 +10,9 @@
 % The file ijcai17.sty is the style file for IJCAI-17 (same as ijcai07.sty).
 \usepackage{ijcai17}
 \usepackage{amsmath,amsfonts}
+\usepackage{algorithm,algorithmic}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
 % Use the postscript times font!
 \usepackage{times}
 \def \y {\mathbf{y}}
@@ -119,15 +122,84 @@ We conduct our experiments on five real-wrold datasets, including MovieLens100k,
 		MovieLens100k 		   	& 943 & 1,682 & 100,000  \\
 		Netflix(subset)     	& 5,000 & 5,000 & 305,725   \\
 		MovieLens1M            	& 6,040 & 3,952 & 1,000,209  \\
+		AmazonInstantVideo      & 5,130 & 1,685 & 37,126  \\
 	\end{tabular}
 \end{table}
 \subsubsection{Evaluation Metrics}
 To illustrate the recommendation prediction quality of different methods, we use RMSE metric to evaluate the overall error.
 \subsubsection{Methods}
-In our experiments, we compare our 3 different locally linear Factorization Machines to baseline method (FM).\\
-\textbf{Locally Linear FM(LLFM)}:FM with fixed anchor points which initialized by K-means.\\
-\textbf{LLFM with Adaptive Anchor Points(LLFMAAP)}:Update anchor points during learning phase. The anchor points are also initialized by K-means.\\ 
-\textbf{LLFMAAP with Adaptive KNN(LLFMAAPK)}:Choose the optimal number of nearest neighbors of KNN for each sample. Also using adaptive anchor points like the former algorithm.
+In our experiments, we compare our 3 different locally linear Factorization Machines to baseline method (FM).
+\begin{itemize}
+	\item \textbf{LLFM}:FM with several fixed anchor points which initialized by K-means.
+	\begin{algorithm}[H]
+		\caption{LLFM}
+		\begin{algorithmic}[1]
+			\REQUIRE Training data $S$, the number of anchor points $m$, the number of nearest neighbors k, regularization parameter $\lambda$, learning rate $\eta$, parameter in Gaussian kernel $\beta$.
+			\ENSURE Model parameters $\Theta = (\boldsymbol W, \boldsymbol V)$ and anchor points.
+			\STATE Initialize anchor points v by K-means;Initialize $\Theta$:$\boldsymbol W\leftarrow(0,...,0),\boldsymbol V\sim N(0,0.1)$
+			\REPEAT 
+			\FOR{$(\boldsymbol{x},y) \in S$}
+			\STATE Compute the local coordinates $\gamma_{\boldsymbol{z}}(\boldsymbol{x})$
+			\STATE Compute $\hat{y}(\boldsymbol{x}|\Theta)$
+			\STATE Update $\boldsymbol W$
+			\STATE Update $\boldsymbol V$
+			\ENDFOR
+			\UNTIL stopping criterion is met;
+		\end{algorithmic}
+	\end{algorithm}
+	\item \textbf{LLFMAAP}:LLFM with Adaptive Anchor Points, update anchor points during learning phase. The anchor points are also initialized by K-means.
+	\begin{algorithm}[H]
+		\caption{LLFMAAP}
+		\begin{algorithmic}[1]
+			\REQUIRE Training data $S$, the number of anchor points $m$, the number of nearest neighbors k, regularization parameter $\lambda$, learning rate $\eta$, parameter in Gaussian kernel $\beta$.
+			\ENSURE Model parameters $\Theta = (\boldsymbol W, \boldsymbol V)$ and anchor points.
+			\STATE Initialize anchor points v by K-means;Initialize $\Theta$:$\boldsymbol W\leftarrow(0,...,0),\boldsymbol V\sim N(0,0.1)$
+			\REPEAT 
+			\FOR{$(\boldsymbol{x},y) \in S$}
+			\STATE Compute the local coordinates $\gamma_{\boldsymbol{z}}(\boldsymbol{x})$
+			\STATE Compute $\hat{y}(\boldsymbol{x}|\Theta)$
+			\STATE Update $\boldsymbol W$
+			\STATE Update $\boldsymbol V$
+			\FOR{$j=1$ \TO $k$}
+			\STATE Update the $j$th nearest anchor point of $\boldsymbol{x}$.
+			\ENDFOR
+			\ENDFOR
+			\UNTIL stopping criterion is met;
+		\end{algorithmic}
+	\end{algorithm}
+	\item \textbf{LLFMAAPK}:LLFMAAP with Adaptive KNN, choose the optimal number of nearest neighbors of KNN for each sample. Also using adaptive anchor points like the former algorithm.
+	\begin{algorithm}[H]
+		\caption{LLFMAAPK}
+		\begin{algorithmic}[1]
+			\REQUIRE Training data $S$, the number of anchor points $m$, regularization parameter $\lambda$, learning rate $\eta$, Lipschitz to noise ratio $L/C$.
+			\ENSURE Model parameters $\Theta = (\boldsymbol W, \boldsymbol V)$ and anchor points.
+			\STATE Initialize anchor points v by K-means;Initialize $\Theta$:$\boldsymbol W\leftarrow(0,...,0),\boldsymbol V\sim N(0,0.1)$
+			\REPEAT 
+			\FOR{$(\boldsymbol{x},y) \in S$}
+			\STATE Compute the local coordinates $\gamma_{\boldsymbol{z}}(\boldsymbol{x})$ and the number of nearest neighbor $k_{\boldsymbol{z}}(\boldsymbol{x})$
+			\STATE Compute $\hat{y}(\boldsymbol{x}|\Theta)$
+			\STATE Update $\boldsymbol W$
+			\STATE Update $\boldsymbol V$
+			\FOR{$j=1$ \TO $k_{\boldsymbol{z}}(\boldsymbol{x})$}
+			\STATE Update the jth nearest anchor point of $\boldsymbol{x}$.
+			\ENDFOR
+			\ENDFOR
+			\UNTIL stopping criterion is met;
+		\end{algorithmic}
+	\end{algorithm}
+\end{itemize}
+
+\subsubsection{Hyper-parameter Settings}
+We apply 5-fold cross validation to find the hyper-parameters for the four different algorithm independently. For parameter settings, we adopt the same parameter tuning schemes for all the compared algorithm to enable fair comparisons. We perform grid search to choose the best parameters for each algorithm on the training set.
+\begin{itemize}
+	\item \textbf{Learning rate for FM parameters} $\eta_{w,V}$: We do grid search in $\left\{0.001,0.01,0.1\right\}$.
+	\item \textbf{Learning rate for anchor points} $\eta_{anchor}$:We do grid search in $\left\{0.001,0.01,0.1\right\}$.
+	\item \textbf{Latent dimension} $d$:For comparison purposes,we set a fixed value($d = 10$ in our experiment)for all methods based on factorization
+	models.
+	\item \textbf{Regularlization} $\lambda$:We do grid search in $\left\{0,0.001,0.01,0.1,1\right\}$.
+	\item \textbf{parameter in Gaussian kernel} $\beta$:We do grid search in $\left\{0.1,1,10\right\}$.
+	\item \textbf{Lipschitz to noise ratio} $L/C$:We do grid search in $\left\{0.1,0.2,0.4,0.6,0.8,1\right\}$.
+\end{itemize}
 \section{Conclusion}
 %% The file named.bst is a bibliography style file for BibTeX 0.99c
 \bibliographystyle{named}
