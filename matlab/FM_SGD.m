@@ -1,3 +1,5 @@
+rng('default');
+
 % load training data
 % train_X, train_Y
 % load('training_data_1m');
@@ -5,10 +7,7 @@
 recommendation = 0;
 regression = 1;
 classification = 2;
-
-rand('state',1); 
-randn('state',1);
-task = classification;
+task = recommendation;
 
 if task == recommendation
     [num_sample, ~] = size(train_X);
@@ -25,13 +24,26 @@ y_min = min(train_Y);
 
 % parameters
 iter_num = 1;
-learning_rate = 1e-3;
+% ml 100l
+% learning_rate = 2e3;
+% t0 = 1e4;
+% skip = 1e3;
+
+% ml 100k
+learning_rate = 1e4;
+t0 = 1e5;
+skip = 1e2;
+
+count = skip;
+
 factors_num = 10;
 
-reg_w = 0;
-reg_v = 0;
+% reg_w = 0;
+% reg_v = 0;
+
+
   
-epoch = 3;
+epoch = 10;
 
 % accelerate the learning process
 % momentum = 0.9;
@@ -145,37 +157,47 @@ for i=1:iter_num
 %             w0_ = momentum*w0_ + learning_rate * (2 * err);
 
             if task == recommendation
-                w0_ = learning_rate * (2* err + 2*reg_w*w0);
+                w0_ = learning_rate / (idx + t0) * (2* err);
+%                 w0_ = learning_rate * (2* err);
                 w0 = w0 - w0_;
 
 %                 W_(feature_idx) = momentum*W_(feature_idx) + learning_rate * (2*err + 2*reg_w*W(feature_idx));
 %                 W(feature_idx) = W(feature_idx) - W_(feature_idx);
 
-                W_ = learning_rate * (2*err + 2*reg_w*W(feature_idx));
+                W_ = learning_rate / (idx + t0) * (2*err);
+%                 W_ = learning_rate * (2*err);
                 W(feature_idx) = W(feature_idx) - W_;
 
 %                 V_(feature_idx,:) = momentum*V_(feature_idx,:) + learning_rate * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))) + 2*reg_v*V(feature_idx,:));
 %                 V(feature_idx,:) = V(feature_idx,:) - V_(feature_idx, :);
-                V_ = learning_rate * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))) + 2*reg_v*V(feature_idx,:));
+                V_ = learning_rate / (idx + t0) * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))));
+%                 V_ = learning_rate* (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))));
                 V(feature_idx,:) = V(feature_idx,:) - V_;
             end
 
             if task == classification
-                w0_ = learning_rate * ((err-1)*y + 2*reg_w*w0);    
+                w0_ = learning_rate / (idx + t0) * ((err-1)*y);    
                 w0 = w0 - w0_;
-                W_ = learning_rate * ((err-1)*y*X + 2*reg_w*W);
+                W_ = learning_rate / (idx + t0) * ((err-1)*y*X);
                 W = W - W_;
-                V_ = learning_rate * ((err-1)*y*(repmat(X',1,factors_num).*(repmat(X*V,p,1)-repmat(X',1,factors_num).*V)) + 2*reg_v*V);
+                V_ = learning_rate / (idx + t0) * ((err-1)*y*(repmat(X',1,factors_num).*(repmat(X*V,p,1)-repmat(X',1,factors_num).*V)));
                 V = V - V_;
             end
             
             if task == regression
-                w0_ = learning_rate * 2 * err;
+                w0_ = learning_rate / (idx + t0) * 2 * err;
                 w0 = w0 - w0_;
-                W_ = learning_rate * (2 * err * X + 2*reg_w*W);
+                W_ = learning_rate / (idx + t0) * (2 * err * X);
                 W = W - W_;
-                V_ = learning_rate * (2*err*(repmat(X',1,factors_num).*(repmat(X*V,p,1)-repmat(X',1,factors_num).*V)) + 2*reg_v*V);
+                V_ = learning_rate / (idx + t0) * (2*err*(repmat(X',1,factors_num).*(repmat(X*V,p,1)-repmat(X',1,factors_num).*V)));
                 V = V - V_;
+            end
+            
+            count = count - 1;
+            if count <= 0
+                W = W * (1-skip/(idx+t0));
+                V = V * (1-skip/(idx+t0));
+                count = skip;
             end
         end
     
@@ -259,13 +281,14 @@ grid on;
 hold on;  
 
 %%
-plot(rmse_fm_train,'DisplayName','FM');
+plot(rmse_fm_test,'k--o','DisplayName','FM');
 legend('-DynamicLegend');
+% title('Learning Curve on Test Dataset')
 hold on;
 % plot(rmse_fm_test,'DisplayName','FM\_Test');
 % legend('-DynamicLegend');
 xlabel('epoch');
 ylabel('RMSE');
 % legend('FM_Train','FM_Test');
-title('FM\_SGD');
+% title('FM\_SGD');
 grid on;

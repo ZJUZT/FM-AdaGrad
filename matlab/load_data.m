@@ -15,8 +15,11 @@ amazon_video_train = 'data/amazon/training_data_video';
 amazon_video_test = 'data/amazon/test_data_video';
 
 % netflix subset
-netflix_train_5K5K = 'data/netflix/training_data5K5K';
-netflix_test_5K5K = 'data/netflix/test_data5K5K';
+% netflix_train_5K5K = 'data/netflix/training_data5K5K';
+% netflix_test_5K5K = 'data/netflix/test_data5K5K';
+
+netflix_train_5K5K = 'data/netflix_half_half/train_data';
+netflix_test_5K5K = 'data/netflix_half_half/test_data';
 
 %% classification task
 % adult
@@ -36,8 +39,8 @@ ijcnn_train = 'data/ijcnn/train_data';
 ijcnn_test = 'data/ijcnn/test_data';
 
 %% 
-% training_data = ml_100k_training;
-% test_data = ml_100k_test;
+training_data = ml_100k_training;
+test_data = ml_100k_test;
 % 
 % training_data = ml_1m_training;
 % test_data = ml_1m_test;
@@ -51,8 +54,8 @@ ijcnn_test = 'data/ijcnn/test_data';
 % training_data = adult_train;
 % test_data = adult_test;
 
-training_data = banana_train;
-test_data = banana_test;
+% training_data = banana_train;
+% test_data = banana_test;
 
 % training_data = magic04_train;
 % test_data = magic04_test;

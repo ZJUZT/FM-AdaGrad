@@ -5,14 +5,15 @@
 
 % load('training_data_1m');
 % load('test_data_1m');
+rng('default');
 recommendation = 0;
 regression = 1;
 classification = 2;
 
-rand('state',1); 
-randn('state',1);
+% rand('state',1); 
+% randn('state',1);
 
-task = classification;
+task = recommendation;
 
 if task == recommendation
     [num_sample, ~] = size(train_X);
@@ -23,21 +24,25 @@ end
 
 % parameters 
 iter_num = 1;
-learning_rate = 5e-2;
-learning_rate_anchor =5e-2;
-factors_num = 10;
-reg_w = 0;
-reg_v = 0; 
+learning_rate = 8e3;
+t0 = 1e4;
+skip = 1e3;
 
-epoch = 3  ;
+count = skip;
+
+epoch = 10;
 
 % locally linear
 % anchor points
-anchors_num = 20 ;
+anchors_num = 50 ;
 
 % Lipschitz to noise ratio
 % control the number of neighbours
-LC = 1  ;
+
+% ml 100k
+% LC = 0.08;
+% netflix
+LC = 0.08;
 rmse_dadk_llfm_test = zeros(iter_num, epoch); 
 rmse_dadk_llfm_train = zeros(iter_num, epoch); 
 
@@ -77,8 +82,8 @@ for i=1:iter_num
 
     % get anchor points
     fprintf('Start K-means...\n');
-%     [~, anchors, bcon_dadkllfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num, 'MaxIter', 1000, 'Replicates', 10);
-    [~, anchors, ~, SD, ~] = litekmeans(train_X, anchors_num, 'MaxIter', 1000, 'Replicates', 10);
+    [~, anchors, bcon_dadkllfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num, 'Replicates', 10);
+%     [~, anchors, ~, SD, ~] = litekmeans(train_X, anchors_num, 'MaxIter', 1000, 'Replicates', 10);
 %     sumD_dadkllfm(i) = sum(SD);
 %     anchors = 0.1*randn(anchors_num, p);
 
@@ -194,40 +199,47 @@ for i=1:iter_num
 
             if task == recommendation
                 tmp_w0 = w0(anchor_idx);
-                w0(anchor_idx) = tmp_w0 - learning_rate *  (2 * err * gamma + 2 * reg_w*tmp_w0);
+                w0(anchor_idx) = tmp_w0 - learning_rate / (idx + t0) *  (2 * err * gamma);
                 tmp_W = W(feature_idx,anchor_idx);
-                W(feature_idx,anchor_idx) =  tmp_W - learning_rate *(2*err * repmat(gamma,2,1) + 2*reg_w*tmp_W);
+                W(feature_idx,anchor_idx) =  tmp_W - learning_rate / (idx + t0) *(2*err * repmat(gamma,2,1));
 
                 for k=1:nearest_neighbor
                     temp_V = squeeze(V(feature_idx,:,anchor_idx(k)));
                    
                       V(feature_idx,:,anchor_idx(k)) = ...
-                          temp_V - learning_rate * ...
-                          (2*err*gamma(k)*(repmat(sum(temp_V),2,1)- temp_V) + 2*reg_v*temp_V);
+                          temp_V - learning_rate / (idx + t0) * ...
+                          (2*err*gamma(k)*(repmat(sum(temp_V),2,1)- temp_V));
                 end
 
             end
 
             if task == classification
                 tmp_w0 = w0(anchor_idx);
-                w0(anchor_idx) = tmp_w0 - learning_rate * gamma .* (err-1)*y;
+                w0(anchor_idx) = tmp_w0 - learning_rate / (idx + t0) * gamma .* (err-1)*y;
                 tmp_W = W(:,anchor_idx);
-                W(:,anchor_idx) = tmp_W - learning_rate * repmat(gamma,p,1) .* ((err-1)*y*repmat(X',[1,nearest_neighbor]) + 2*reg_w*tmp_W);
+                W(:,anchor_idx) = tmp_W - learning_rate / (idx + t0) * repmat(gamma,p,1) .* ((err-1)*y*repmat(X',[1,nearest_neighbor]));
                 for k=1:nearest_neighbor
                     temp_V = squeeze(V(:,:,anchor_idx(k)));
-                    V(:,:,anchor_idx(k)) = temp_V - learning_rate * gamma(k) * ((err-1)*y*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)) + 2*reg_v*temp_V);
+                    V(:,:,anchor_idx(k)) = temp_V - learning_rate / (idx + t0) * gamma(k) * ((err-1)*y*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)));
                 end
             end
 
             if task == regression
                 tmp_w0 = w0(anchor_idx);
-                w0(anchor_idx) = tmp_w0 - learning_rate * gamma .* 2 * err;
+                w0(anchor_idx) = tmp_w0 - learning_rate / (idx + t0) * gamma .* 2 * err;
                 tmp_W = W(:,anchor_idx);
-                W(:,anchor_idx) = tmp_W - learning_rate * repmat(gamma,p,1) .* (2*err*repmat(X',[1,nearest_neighbor]) + 2*reg_w*tmp_W);
+                W(:,anchor_idx) = tmp_W - learning_rate / (idx + t0) * repmat(gamma,p,1) .* (2*err*repmat(X',[1,nearest_neighbor]));
                 for k=1:nearest_neighbor
                     temp_V = squeeze(V(:,:,anchor_idx(k)));
-                    V(:,:,anchor_idx(k)) = temp_V - learning_rate * gamma(k) * (2*err*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)) + 2*reg_v*temp_V);
+                    V(:,:,anchor_idx(k)) = temp_V - learning_rate / (idx + t0) * gamma(k) * (2*err*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)));
                 end
+            end
+            
+            count = count - 1;
+            if count <= 0
+                W = W * (1-skip/(idx+t0));
+                V = V * (1-skip/(idx+t0));
+                count = skip;
             end
 
             % tmp_w0 = w0(anchor_idx);
@@ -259,7 +271,7 @@ for i=1:iter_num
             s = 2 * LC * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
             base = -s * sum(weight.*y_anchor);
             base = base + repmat(y_anchor',1,p).* s*sum(weight);
-            anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate_anchor * (err-1) * y * base/(sum(weight).^2);
+            anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate / (idx + t0) * 2 * err * y * base/(sum(weight).^2);
 
 
     %         for k=1:nearest_neighbor
@@ -401,7 +413,7 @@ hold on;
 grid on;
 
 %%
-plot(rmse_dadk_llfm_train, 'DisplayName','LLFMAAPK');
+plot(rmse_dadk_llfm_test,'r--o', 'DisplayName','LLFM-JO');
 legend('-DynamicLegend');
 hold on;
 % plot(rmse_dadk_llfm_test,'DisplayName','DKDKLLFM\_Test');
@@ -409,6 +421,6 @@ hold on;
 xlabel('epoch');
 ylabel('RMSE');
 % legend('DKDALLFM\_Train','DKDKLLFM\_Test');
-title('DADKLLFM\_SGD');
+% title('DADKLLFM\_SGD');
 grid on;
 hold on;
