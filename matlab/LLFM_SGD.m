@@ -10,7 +10,7 @@ classification = 2;
 % rand('state',1); 
 % randn('state',1);
 
-task = recommendation;
+task = classification;
 
 if task == recommendation
     [num_sample, ~] = size(train_X);
@@ -33,21 +33,46 @@ factors_num = 10;
 % skip = 1e3;
 
 % netflix
-learning_rate = 2e4;
+
+% banana
+learning_rate = 1e4;
 t0 = 1e5;
 skip = 1e2; 
+
+% ijcnn
+% learning_rate = 1e5 ;
+% t0 = 1e5;
+% skip = 1e3;   
+
+% ml 100k
+% learning_rate = 2e4;
+% t0 = 1e5;
+% skip = 1e3;   
+
+% learning_rate = 1e-1;
+% reg = 1e-5;
+
+% netflix
+% learning_rate = 1e5;  
+% t0 = 1e5;
+% skip = 1e3; 
+
+% magic04
+% learning_rate = 5e4;
+% t0 = 1e5;
+% skip = 1e3; 
 
 count = skip;
 
 % locally linear
 % anchor points
-anchors_num = 50 ;
+anchors_num = 10 ;
 
 
-epoch = 10;
+epoch = 50;
 
 % knn
-nearest_neighbor = 5;
+nearest_neighbor = 5  ;
 beta = 1;
 
 bcon_llfm = zeros(1,iter_num);
@@ -66,27 +91,32 @@ accuracy_llfm = zeros(iter_num, epoch);
 
 % T = 1e5;
 
-re_idx = randperm(num_sample);
-X_train = train_X(re_idx,:);
-Y_train = train_Y(re_idx);
-
 for i=1:iter_num
     % do shuffle
-    
+%     re_idx = randperm(num_sample);
+%     X_train = train_X(re_idx,:);
+%     Y_train = train_Y(re_idx);
     
     w0 = zeros(1, anchors_num);
     W = zeros(p,anchors_num);
     V = 0.1*randn(p,factors_num,anchors_num);
 
-    mse_llfm_sgd = zeros(1,num_sample);        
+    % initialization by pre-FM-train
+%     w0 = repmat(w0_ini, 1, anchors_num);
+% %     W = zeros(p,anchors_num);
+%     W = repmat(W_ini', 1, anchors_num);
+% %     V = 0.1*randn(p,factors_num,anchors_num);
+%     V = repmat(V_ini, 1,1, anchors_num);
+
+    mse_llfm_sgd = zeros(1,num_sample);
     loss = zeros(1,epoch*num_sample);
     
     
 
     % get anchor points
     fprintf('Start K-means...\n');
-    [label, anchors, bcon_llfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num, 'Replicates', 10);
-%     [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num, 'Replicates', 10);
+%     [label, anchors, bcon_llfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num, 'Replicates', 10);
+    [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num, 'Replicates', 10);
 %     sumD_llfm(i) = sum(SD);
 
 %     [label, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num);
@@ -104,6 +134,10 @@ for i=1:iter_num
 %         Y_train = train_Y(re_idx);
 %         X_train = train_X;
 %         Y_train = train_Y;
+
+        re_idx = randperm(num_sample);
+        X_train = train_X(re_idx,:);
+        Y_train = train_Y(re_idx);
         
         for j=1:num_sample
             if mod(j,1e3)==0
@@ -203,11 +237,14 @@ for i=1:iter_num
             if task == classification
                 tmp_w0 = w0(anchor_idx);
                 w0(anchor_idx) = tmp_w0 - learning_rate / (idx + t0) * (gamma .* (err-1)*y);
+%                 w0(anchor_idx) = tmp_w0 - learning_rate  * (gamma .* (err-1)*y + 2 * reg * w0(anchor_idx));
                 tmp_W = W(:,anchor_idx);
                 W(:,anchor_idx) = tmp_W - learning_rate / (idx + t0) * ((err-1)*repmat(gamma,p,1)*y.*repmat(X',[1,nearest_neighbor]));
+%                 W(:,anchor_idx) = tmp_W - learning_rate * ((err-1)*repmat(gamma,p,1)*y.*repmat(X',[1,nearest_neighbor]) + 2 * reg * tmp_W);
                 for k=1:nearest_neighbor
                     temp_V = squeeze(V(:,:,anchor_idx(k)));
                     V(:,:,anchor_idx(k)) = temp_V - learning_rate / (idx + t0) * ((err-1)*gamma(k)*y*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)));
+%                     V(:,:,anchor_idx(k)) = temp_V - learning_rate * ((err-1)*gamma(k)*y*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)) + 2 * reg * temp_V);
                 end
             end
 
@@ -310,7 +347,9 @@ for i=1:iter_num
         else
             rmse_llfm_test(i, t) = (mse_llfm_test / num_sample_test)^0.5;
         end
+        
         toc;
+        fprintf('%d iter(%d epoch)---loss: %f\n', i,t,rmse_llfm_test(i, t));
     end
 end
 
@@ -327,7 +366,7 @@ grid on;
 hold on;
 
 %%
-plot(rmse_llfm_test,'g--o','DisplayName','LLFM-DO');
+plot(rmse_llfm_test,'g--+','DisplayName','LLFM-DO');
 legend('-DynamicLegend');
 hold on;
 % plot(rmse_llfm_test,'DisplayName','LLFM\_Test');

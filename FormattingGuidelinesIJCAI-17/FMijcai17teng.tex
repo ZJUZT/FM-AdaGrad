@@ -11,6 +11,7 @@
 \usepackage{ijcai17}
 \usepackage{graphicx}
 \usepackage{subfigure}
+\usepackage{tabu}
 \usepackage{amsmath,amsfonts}
 \usepackage{algorithm,algorithmic}
 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
@@ -115,16 +116,54 @@ In this section, to verify the effectiveness of our proposed Adaptive Locally Li
 \subsection{Experimental Setup}
 \subsubsection{Datasets}
 We conduct our experiments on 2 real-wrold datasets, including Banana and IJCNN. The statistics of the datasets after preprocesing are shown in Table 1.
-\begin{table}
+\begin{table*}
+	\centering
+	\begin{tabu} to \textwidth {|X[c]| X[c]| X[c]| X[c]| X[c]|}
+		\hline
+		Dataset              & \#Training & \#Test & \#feature &\#class\\
+		\hline
+		Banana 		   		& 3533 		& 1767 	& 2 	& 2  \\
+		IJCNN           	& 49990 	& 91701 & 22 	& 2  \\
+		Movielens 100k       & 90570 	& 9430 & 2625(943 + 1682) 	& /  \\
+		Netflix5K5K       & 152862 	& 152862 & 10000(5000 + 5000) 	& /  \\
+		\hline
+	\end{tabu}
 	\caption{Basic statistics of datasets}
-	\begin{tabular}{l*{6}{c}r}
+\end{table*}
+
+\begin{table*}
+	\begin{tabu} to \textwidth {|X[c]| X[c]| X[c]| X[c]| X[c]|}
 		\hline
-		Dataset              & train & test & feature \\
+		Banana              & Train loss & Test loss & Acc(\%) &test time \\
 		\hline
-		Banana 		   	& 3533 & 1767 & 2  \\
-		IJCNN     	& 4990 & 91701 & 22   \\
-	\end{tabular}
-\end{table}
+		\textbf{FM} 		   		&0.6792$\pm$0.0005  &0.6763$\pm$0.004  & 53.77 $\pm$ 0.19 & $\times$1  \\ \hline
+		\textbf{LLFM-DO}     		&0.2576$\pm$0.0018  &0.2364$\pm$0.0020  & 89.87 $\pm$ 0.20 & $\times$12.06 \\ \hline
+		\textbf{LLFM-APL}       	&0.2493$\pm$0.0018  &0.2283$\pm$0.0047  & 89.96 $\pm$ 0.23 &$\times$11.95 \\ \hline
+		\textbf{LLFM-JO}         &\textbf{0.2235$\pm$0.0006}  &\textbf{0.2170$\pm$0.0012}  & \textbf{90.44 $\pm$ 0.29} &$\times$11.05 \\ \hline
+		\hline
+		IJCNN              & Train loss & Test loss & Acc(\%) &test time \\
+		\hline
+		\textbf{FM} 		   	&0.0911$\pm$0.0004  &0.0927$\pm$0.0038  &96.97 $\pm$ 0.41  &$\times$1 \\ \hline
+		\textbf{LLFM-DO}     		&0.0797$\pm$0.0007  &0.0708$\pm$0.0118  &97.72 $\pm$ 0.21  &$\times$21.56 \\ \hline
+		\textbf{LLFM-APL}       &0.0799$\pm$0.0019  &0.0525$\pm$0.0038  &98.26 $\pm$ 0.12  &$\times$22.04 \\ \hline
+		\textbf{LLFM-JO}         &\textbf{0.0550$\pm$0.0015}  &\textbf{0.0404$\pm$0.0014}  &\textbf{98.73 $\pm$ 0.06}   &$\times$22.92\\ \hline
+		\hline
+		Movielens 100k              & Train loss & Test loss & Acc(\%) &test time\\
+		\hline
+		\textbf{FM} 		   	&0.8059$\pm$0.0012  &0.9498$\pm$0.0044  & 90.50 $\pm$ 0.00  &$\times$1\\ \hline
+		\textbf{LLFM}     		&0.6801$\pm$0.0024  &0.9464$\pm$0.0027  & 96.18 $\pm$ 0.25  &$\times$15.52\\ \hline
+		\textbf{LLFM-APL}       &0.8630$\pm$0.0100  &0.9384$\pm$0.0023  & 96.97 $\pm$ 0.68  &$\times$15.78\\ \hline
+		\textbf{LLFM-JO}         &\textbf{0.8758$\pm$0.0153}  &\textbf{0.9331$\pm$0.0016}  & \textbf{97.12 $\pm$ 0.51}   &$\times$16.30\\ \hline
+		\hline
+		Netflix5K5K              & Train loss & Test loss & Acc(\%) &test time\\
+		\hline
+		\textbf{FM} 		   	&0.0409$\pm$0.0001  &0.0415$\pm$0.0000  &98.15 $\pm$ 0.02  &$\times$1 \\ \hline
+		\textbf{LLFM}     		&0.0319$\pm$0.0002  &0.0275$\pm$0.0004  &98.82 $\pm$ 0.04  &$\times$7.08 \\ \hline
+		\textbf{LLFM-APL}       &0.0268$\pm$0.0002  &0.0201$\pm$0.0003  &99.03 $\pm$ 0.03 &$\times$7.17  \\ \hline
+		\textbf{LLFM-JO}         &\textbf{0.0258$\pm$0.0007}  &\textbf{0.0194$\pm$0.0008}  &\textbf{99.08 $\pm$ 0.02}  &$\times$7.28 \\ \hline
+	\end{tabu}
+	\caption{Comparison of different algorithms in terms of train loss, test loss, classification accuracy and test time (normalized to test time of FM)}
+\end{table*}
 \subsubsection{Evaluation Metrics}
 To illustrate the recommendation prediction quality of different methods, we use RMSE metric to evaluate the overall error.
 \subsubsection{Methods}

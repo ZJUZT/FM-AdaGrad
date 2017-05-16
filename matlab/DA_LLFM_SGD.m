@@ -10,7 +10,7 @@ classification = 2;
 % rand('state',1); 
 % randn('state',1);
 
-task = recommendation;
+task = classification;      
 
 if task == recommendation
     [num_sample, ~] = size(train_X);
@@ -24,30 +24,45 @@ end
 
 % parameters 
 iter_num = 1;
-epoch = 10;
+epoch = 20;
 
 % learning_rate = 5e-2;
 % learning_rate_anchor = 5e-2;
 factors_num = 10;
-learning_rate = 2e3;
-t0 = 1e4;
-skip = 1e3;
+
+% ijcnn
+% learning_rate = 5e4;
+% t0 = 1e5;
+% skip = 1e3;
+
+% learning_rate = 5e-2;
+% reg = 1e-3;
+
+% banana
+learning_rate = 1e4;
+t0 = 1e5;
+skip = 1e1;
+
+% ml 100k
+% learning_rate = 1e4;
+% t0 = 1e5;
+% skip = 1e3;
 
 count = skip;
 
 % T = 1e5  ;
 % locally linear
 % anchor points
-anchors_num = 50 ;
+anchors_num = 10;
 
-beta = 1;
+beta = 1  ;
 
 bcon_dallfm = zeros(iter_num, epoch);
 sumD_dallfm = zeros(iter_num, epoch);
 accuracy_dallfm = zeros(iter_num, epoch);
 
 % knn
-nearest_neighbor = 5 ;
+nearest_neighbor = 2 ;
 
 rmse_dallfm_test = zeros(iter_num,epoch);
 
@@ -64,8 +79,8 @@ for i=1:iter_num
     
     % get anchor points
     fprintf('Start K-means...\n');
-    [~, anchors, bcon_dallfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num, 'Replicates', 10);
-%     [~, anchors, ~, SD, ~] = litekmeans(train_X, anchors_num,'MaxIter', 1000, 'Replicates', 10);
+%     [~, anchors, bcon_dallfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num, 'Replicates', 10);
+    [~, anchors, ~, SD, ~] = litekmeans(train_X, anchors_num, 'Replicates', 10);
 %     sumD_dallfm(i) = sum(SD);
 %     anchors = 0.1*randn(anchors_num, p);
     fprintf('K-means done..\n');
@@ -82,6 +97,11 @@ for i=1:iter_num
     
 %         X_train = train_X;
 %         Y_train = train_Y;
+
+%         re_idx = randperm(num_sample);
+%         X_train = train_X(re_idx,:);
+%         Y_train = train_Y(re_idx);
+        
         for j=1:num_sample
             if mod(j,1e3)==0
                 toc;
@@ -171,11 +191,14 @@ for i=1:iter_num
             if task == classification
                 tmp_w0 = w0(anchor_idx);
                 w0(anchor_idx) = tmp_w0 - learning_rate / (idx + t0) * gamma .* (err-1)*y;
+%                 w0(anchor_idx) = tmp_w0 - learning_rate * (gamma .* (err-1)*y + 2 * reg * tmp_w0);
                 tmp_W = W(:,anchor_idx);
                 W(:,anchor_idx) = tmp_W - learning_rate / (idx + t0) * repmat(gamma,p,1) .* ((err-1)*y*repmat(X',[1,nearest_neighbor]));
+%                 W(:,anchor_idx) = tmp_W - learning_rate * (repmat(gamma,p,1) .* ((err-1)*y*repmat(X',[1,nearest_neighbor])) + 2 * reg * tmp_W);
                 for k=1:nearest_neighbor
                     temp_V = squeeze(V(:,:,anchor_idx(k)));
                     V(:,:,anchor_idx(k)) = temp_V - learning_rate / (idx + t0) * gamma(k) * ((err-1)*y*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V)));
+%                     V(:,:,anchor_idx(k)) = temp_V - learning_rate * (gamma(k) * ((err-1)*y*(repmat(X',1,factors_num).*(repmat(X*temp_V,p,1)-repmat(X',1,factors_num).*temp_V))) + 2 * reg * temp_V);
                 end
             end
 
@@ -201,7 +224,8 @@ for i=1:iter_num
             s = 2 * beta * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :)).*repmat(weight, p, 1)';
             base = -s * sum(weight.*y_anchor);
             base = base + repmat(y_anchor',1,p).* s*sum(weight);
-            anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate / (idx + t0) * (2*err*y* base/(sum(weight).^2));
+%             anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate / (idx + t0) * (2*err* base/(sum(weight).^2));
+            anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate / (idx + t0) * ((err-1)*y* base/(sum(weight).^2));
 
         end
     
@@ -271,8 +295,9 @@ for i=1:iter_num
             rmse_dallfm_test(i, t) = (mse_dallfm_test / num_sample_test);
         else
             rmse_dallfm_test(i, t) = (mse_dallfm_test / num_sample_test)^0.5;
-        end
+        end 
         toc;
+        fprintf('%d iter(%d epoch)---loss: %f\n', i,t,rmse_dallfm_test(i, t));
     end
 end
 
@@ -288,7 +313,7 @@ ylabel('RMSE');
 hold on;
 grid on;
 %% 
-plot(rmse_dallfm_test,'r--o','DisplayName','LLFM-APL');
+plot(rmse_dallfm_test,'b--*','DisplayName','LLFM-APL');
 legend('-DynamicLegend');
 hold on;
 % plot(rmse_dallfm_test,'DisplayName','DALLFM\_Test');

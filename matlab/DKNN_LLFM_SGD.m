@@ -6,43 +6,57 @@
 % load('training_data_1m');
 % load('test_data_1m');
 rng('default');
-recommendation = 0;
+recommendation = 0; 
 regression = 1;
 classification = 2;
 
 % rand('state',1); 
 % randn('state',1);
 
-task = recommendation;
+task = classification;
 
 if task == recommendation
     [num_sample, ~] = size(train_X);
     p = max(train_X(:,2));
 else
     [num_sample, p] = size(train_X);
-end
+end  
 
 % parameters 
 iter_num = 1;
-learning_rate = 8e3;
-t0 = 1e4;
-skip = 1e3;
 
+% banana
+% learning_rate = 1e4;
+% t0 = 1e5;
+% skip = 1e3;
+
+% ijcnn
+% learning_rate = 1e5;
+% t0 = 1e5;
+% skip = 1e3;
+
+% ml 100k
+learning_rate = 1e4;
+t0 = 1e5;
+skip = 1e3;
+ 
 count = skip;
 
-epoch = 10;
+epoch = 20;
 
 % locally linear
 % anchor points
-anchors_num = 50 ;
+anchors_num = 10;
+
+factors_num = 10;
 
 % Lipschitz to noise ratio
 % control the number of neighbours
 
-% ml 100k
+% ml 100
 % LC = 0.08;
 % netflix
-LC = 0.08;
+LC = 1;
 rmse_dadk_llfm_test = zeros(iter_num, epoch); 
 rmse_dadk_llfm_train = zeros(iter_num, epoch); 
 
@@ -82,8 +96,8 @@ for i=1:iter_num
 
     % get anchor points
     fprintf('Start K-means...\n');
-    [~, anchors, bcon_dadkllfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num, 'Replicates', 10);
-%     [~, anchors, ~, SD, ~] = litekmeans(train_X, anchors_num, 'MaxIter', 1000, 'Replicates', 10);
+%     [~, anchors, bcon_dadkllfm(i), SD, ~] = litekmeans(sparse_matrix(train_X), anchors_num, 'Replicates', 10);
+    [~, anchors, ~, SD, ~] = litekmeans(train_X, anchors_num, 'Replicates', 10);
 %     sumD_dadkllfm(i) = sum(SD);
 %     anchors = 0.1*randn(anchors_num, p);
 
@@ -103,6 +117,11 @@ for i=1:iter_num
         num_nn_bach = 0;
 %         X_train = train_X;
 %         Y_train = train_Y;
+
+%         do shuffle
+%         re_idx = randperm(num_sample);
+%         X_train = train_X(re_idx,:);
+%         Y_train = train_Y(re_idx);
         
         for j=1:num_sample
             if mod(j,1e3)==0
@@ -271,7 +290,8 @@ for i=1:iter_num
             s = 2 * LC * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
             base = -s * sum(weight.*y_anchor);
             base = base + repmat(y_anchor',1,p).* s*sum(weight);
-            anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate / (idx + t0) * 2 * err * y * base/(sum(weight).^2);
+%             anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate / (idx + t0) * 2 * err * base/(sum(weight).^2);
+%             anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate / (idx + t0) * (err-1) * y * base/(sum(weight).^2);
 
 
     %         for k=1:nearest_neighbor
@@ -397,6 +417,7 @@ for i=1:iter_num
             rmse_dadk_llfm_test(i, t) = (mse_dadk_llfm_test / num_sample_test)^0.5;
         end
         toc;
+        fprintf('%d iter(%d epoch)---loss: %f\n', i,t,rmse_dadk_llfm_test(i, t));
     end
 end
 
@@ -413,7 +434,7 @@ hold on;
 grid on;
 
 %%
-plot(rmse_dadk_llfm_test,'r--o', 'DisplayName','LLFM-JO');
+plot(rmse_dadk_llfm_test,'r--x', 'DisplayName','LLFM-JO');
 legend('-DynamicLegend');
 hold on;
 % plot(rmse_dadk_llfm_test,'DisplayName','DKDKLLFM\_Test');

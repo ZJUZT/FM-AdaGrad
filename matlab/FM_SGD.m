@@ -7,7 +7,7 @@ rng('default');
 recommendation = 0;
 regression = 1;
 classification = 2;
-task = recommendation;
+task = classification;
 
 if task == recommendation
     [num_sample, ~] = size(train_X);
@@ -24,15 +24,38 @@ y_min = min(train_Y);
 
 % parameters
 iter_num = 1;
-% ml 100l
+% ml 100k
 % learning_rate = 2e3;
 % t0 = 1e4;
 % skip = 1e3;
 
+% ijcnn
+% learning_rate = 2e3;
+% t0 = 1e5;
+% skip = 1e1;
+
 % ml 100k
-learning_rate = 1e4;
+learning_rate = 5e3;
 t0 = 1e5;
-skip = 1e2;
+skip = 1e1;
+
+% learning_rate = 1e-2;
+% reg = 1e-4;
+
+% banana
+% learning_rate = 1e2;
+% t0 = 1e5;
+% skip = 1e3;
+
+% netflix
+% learning_rate = 6e3;
+% t0 = 1e5;
+% skip = 1e3;
+
+% magic04
+% learning_rate = 2e3;
+% t0 = 1e5;
+% skip = 1e3;
 
 count = skip;
 
@@ -89,6 +112,10 @@ for i=1:iter_num
 
 %         X_train = train_X;
 %         Y_train = train_Y;
+%         re_idx = randperm(num_sample);
+%         X_train = train_X(re_idx,:);
+%         Y_train = train_Y(re_idx);
+        
         for j=1:num_sample
 
             if mod(j,1e3)==0
@@ -96,8 +123,6 @@ for i=1:iter_num
                 tic;
                 fprintf('%d iter(%d epoch)---processing %dth sample\n', i, t, j);
             end
-            
-%             r = randi([1,num_sample]);
 
             if task==recommendation
                 feature_idx = X_train(j,:);
@@ -109,13 +134,19 @@ for i=1:iter_num
                 y_predict = w0 + sum(W(feature_idx)) + factor_part;
 %                 y_predict = factor_part;
             else
+                
                 X = X_train(j,:);
                 y = Y_train(j,:);
+                
+                nz_idx = find(X);
 
-                tmp = sum(repmat(X',1,factors_num).*V);
-                factor_part = (sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(V.^2))))/2;
-%                 factor_part = 0;
-                y_predict = w0 + W*X' + factor_part;
+                tmp = sum(repmat(X(nz_idx)',1,factors_num).*V(nz_idx,:));
+                factor_part = (sum(tmp.^2) - sum(sum(repmat((X(nz_idx)').^2,1,factors_num).*(V(nz_idx,:).^2))))/2;
+                y_predict = w0 + W(nz_idx)*X(nz_idx)' + factor_part;
+
+%                 tmp = sum(repmat(X',1,factors_num).*V);
+%                 factor_part = (sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(V.^2))))/2;
+%                 y_predict = w0 + W*X' + factor_part;
             end
             
 %             y_predict = min(y_predict, y_max);
@@ -158,30 +189,37 @@ for i=1:iter_num
 
             if task == recommendation
                 w0_ = learning_rate / (idx + t0) * (2* err);
-%                 w0_ = learning_rate * (2* err);
+%                 w0_ = learning_rate * (2* err + 2 * reg * w0);
                 w0 = w0 - w0_;
 
 %                 W_(feature_idx) = momentum*W_(feature_idx) + learning_rate * (2*err + 2*reg_w*W(feature_idx));
 %                 W(feature_idx) = W(feature_idx) - W_(feature_idx);
 
                 W_ = learning_rate / (idx + t0) * (2*err);
-%                 W_ = learning_rate * (2*err);
+%                 W_ = learning_rate * (2*err + 2 * reg * W(feature_idx));
                 W(feature_idx) = W(feature_idx) - W_;
 
 %                 V_(feature_idx,:) = momentum*V_(feature_idx,:) + learning_rate * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))) + 2*reg_v*V(feature_idx,:));
 %                 V(feature_idx,:) = V(feature_idx,:) - V_(feature_idx, :);
                 V_ = learning_rate / (idx + t0) * (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))));
-%                 V_ = learning_rate* (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))));
+%                 V_ = learning_rate* (2*err*((repmat(sum(V(feature_idx,:)),2,1)-V(feature_idx,:))) + 2 * reg * V(feature_idx,:));
                 V(feature_idx,:) = V(feature_idx,:) - V_;
             end
 
             if task == classification
-                w0_ = learning_rate / (idx + t0) * ((err-1)*y);    
+                w0_ = learning_rate / (idx + t0) * ((err-1)*y);
+%                 w0_ = learning_rate * ((err-1)*y + 2 * reg * w0); 
                 w0 = w0 - w0_;
-                W_ = learning_rate / (idx + t0) * ((err-1)*y*X);
-                W = W - W_;
-                V_ = learning_rate / (idx + t0) * ((err-1)*y*(repmat(X',1,factors_num).*(repmat(X*V,p,1)-repmat(X',1,factors_num).*V)));
-                V = V - V_;
+                W_ = learning_rate / (idx + t0) * ((err-1)*y*X(nz_idx));
+                W(nz_idx) = W(nz_idx) - W_;
+                V_ = learning_rate / (idx + t0) * ((err-1)*y*(repmat(X(nz_idx)',1,factors_num).*(repmat(X(nz_idx)*V(nz_idx,:),length(nz_idx),1)-repmat(X(nz_idx)',1,factors_num).*V(nz_idx,:))));
+                V(nz_idx,:) = V(nz_idx,:) - V_;
+%                 W_ = learning_rate / (idx + t0) * ((err-1)*y*X);
+%                 W_ = learning_rate * ((err-1)*y*X);
+%                 W = W - W_;
+%                 V_ = learning_rate / (idx + t0) * ((err-1)*y*(repmat(X',1,factors_num).*(repmat(X*V,p,1)-repmat(X',1,factors_num).*V)));
+%                 V_ = learning_rate * ((err-1)*y*(repmat(X',1,factors_num).*(repmat(X*V,p,1)-repmat(X',1,factors_num).*V)));
+%                 V = V - V_;
             end
             
             if task == regression
@@ -206,13 +244,14 @@ for i=1:iter_num
     fprintf('validating\n');
     mse = 0.0;
     correct_num = 0;
-    [num_sample_test, ~] = size(test_X);
+%     [num_sample_test, ~] = size(test_X);
+    num_sample_test = 60000;
     for k=1:num_sample_test
 %         X = test_X(k,:);
 %         y = test_Y(k,:);
-        if mod(k,1e5)==0
-%             toc;
-%             tic;
+        if mod(k,1e4)==0
+            toc;
+            tic;
             fprintf('%d epoch(validation)---processing %dth sample\n',i, k);
         end
  
@@ -228,10 +267,12 @@ for i=1:iter_num
         else 
             X = test_X(k,:);
             y = test_Y(k,:);
-            tmp = sum(repmat(X',1,factors_num).*V) ;
+            nz_idx = find(X);
+            
+            tmp = sum(repmat(X(nz_idx)',1,factors_num).*V(nz_idx,:)) ;
 %             factor_part = 0;
-            factor_part = (sum(tmp.^2) - sum(sum(repmat((X').^2,1,factors_num).*(V.^2))))/2;
-            y_predict = w0 + W*X' + factor_part;
+            factor_part = (sum(tmp.^2) - sum(sum(repmat((X(nz_idx)').^2,1,factors_num).*(V(nz_idx,:).^2))))/2;
+            y_predict = w0 + W(nz_idx)*X(nz_idx)' + factor_part;
         end
 
 %         y_predict = min(y_predict, y_max);
@@ -281,11 +322,11 @@ grid on;
 hold on;  
 
 %%
-plot(rmse_fm_test,'k--o','DisplayName','FM');
+plot(rmse_fm_test ,'k--o','DisplayName','FM');
 legend('-DynamicLegend');
 % title('Learning Curve on Test Dataset')
 hold on;
-% plot(rmse_fm_test,'DisplayName','FM\_Test');
+% plot(rmse_fm_test,'DisplayName','FM\_Test');  
 % legend('-DynamicLegend');
 xlabel('epoch');
 ylabel('RMSE');

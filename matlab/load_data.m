@@ -21,6 +21,10 @@ amazon_video_test = 'data/amazon/test_data_video';
 netflix_train_5K5K = 'data/netflix_half_half/train_data';
 netflix_test_5K5K = 'data/netflix_half_half/test_data';
 
+% RCV1 dataset
+rcv1_train = 'data/rcv1/train_data';
+rcv1_test = 'data/rcv1/test_data';
+
 %% classification task
 % adult
 adult_train = 'data/adult/training_data';
@@ -38,9 +42,14 @@ phishing_test = 'data/phishing/test_data';
 ijcnn_train = 'data/ijcnn/train_data';
 ijcnn_test = 'data/ijcnn/test_data';
 
+%% multiclassification task
+% LETTER dataset
+letter_train = 'data/letter/train_data';
+letter_test = 'data/letter/test_data';
+
 %% 
-training_data = ml_100k_training;
-test_data = ml_100k_test;
+% training_data = ml_100k_training;
+% test_data = ml_100k_test;
 % 
 % training_data = ml_1m_training;
 % test_data = ml_1m_test;
@@ -65,6 +74,12 @@ test_data = ml_100k_test;
 
 % training_data = ijcnn_train;
 % test_data = ijcnn_test;
+
+% training_data = rcv1_train;
+% test_data = rcv1_test;
+
+training_data = letter_train;
+test_data = letter_test;
 
 load(training_data);
 load(test_data); 
