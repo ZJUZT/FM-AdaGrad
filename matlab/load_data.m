@@ -83,11 +83,11 @@ usps_test = 'data/usps/test_data';
 % training_data = rcv1_train;
 % test_data = rcv1_test;
 
-training_data = letter_train;
-test_data = letter_test;
+% training_data = letter_train;
+% test_data = letter_test;
 
-% training_data = mnist_train;
-% test_data = mnist_test;
+training_data = mnist_train;
+test_data = mnist_test;
 % 
 % training_data = usps_train;
 % test_data = usps_test;

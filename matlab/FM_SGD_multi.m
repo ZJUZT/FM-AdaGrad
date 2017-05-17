@@ -9,10 +9,15 @@ y_min = min(train_Y);
 % parameters
 iter_num = 1;
 
-% ml 100k
-learning_rate = 1e4;
+% letter
+% learning_rate = 1e4;
+% t0 = 1e5;
+% skip = 1e1;
+
+% mnist
+learning_rate = 1e3;
 t0 = 1e5;
-skip = 1e1;
+skip = 1e3;
 
 
 count = skip;

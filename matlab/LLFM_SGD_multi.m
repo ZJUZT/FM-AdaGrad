@@ -16,7 +16,7 @@ count = skip;
 
 % locally linear
 % anchor points
-anchors_num = 50 ;
+anchors_num = 10 ;
 
 
 epoch = 10;
@@ -51,7 +51,7 @@ for i=1:iter_num
     % get anchor points
     fprintf('Start K-means...\n');
 
-    [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num, 'Replicates', 10);
+    [~, anchors, bcon_llfm(i), SD, ~] = litekmeans(train_X, anchors_num);
 
     fprintf('K-means done..\n');
     
@@ -114,7 +114,7 @@ for i=1:iter_num
                 tmp_W = squeeze(W(u,nz_idx,anchor_idx));
                 W(u,nz_idx,anchor_idx) = tmp_W - learning_rate / (idx + t0) * ((err(u)-1)*repmat(gamma,length(nz_idx),1)*y(u).*repmat(X(nz_idx)',[1,nearest_neighbor]));
                 for k=1:nearest_neighbor
-                    temp_V = squeeze(V(u,:,:,anchor_idx(k)));
+                    temp_V = squeeze(V(u,nz_idx,:,anchor_idx(k)));
                     V(u,nz_idx,:,anchor_idx(k)) = temp_V -...
                      learning_rate / (idx + t0) *...
                       ((err(u)-1)*gamma(k)*y(u)*(repmat(X(nz_idx)',1,factors_num).*(repmat(X(nz_idx)*temp_V,length(nz_idx),1)-repmat(X(nz_idx)',1,factors_num).*temp_V)));
