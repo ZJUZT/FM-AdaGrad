@@ -43,9 +43,14 @@ ijcnn_train = 'data/ijcnn/train_data';
 ijcnn_test = 'data/ijcnn/test_data';
 
 %% multiclassification task
-% LETTER dataset
 letter_train = 'data/letter/train_data';
 letter_test = 'data/letter/test_data';
+
+mnist_train = 'data/mnist/train_data';
+mnist_test = 'data/mnist/test_data';
+
+usps_train = 'data/usps/train_data';
+usps_test = 'data/usps/test_data';
 
 %% 
 % training_data = ml_100k_training;
@@ -80,6 +85,12 @@ letter_test = 'data/letter/test_data';
 
 training_data = letter_train;
 test_data = letter_test;
+
+% training_data = mnist_train;
+% test_data = mnist_test;
+% 
+% training_data = usps_train;
+% test_data = usps_test;
 
 load(training_data);
 load(test_data); 

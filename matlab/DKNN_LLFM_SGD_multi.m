@@ -26,7 +26,7 @@ factors_num = 10;
 % Lipschitz to noise ratio
 % control the number of neighbours
 
-LC = 0.5;
+LC = 0.6;
 rmse_dadk_llfm_test = zeros(iter_num, epoch); 
 rmse_dadk_llfm_train = zeros(iter_num, epoch); 
 
@@ -158,10 +158,10 @@ for i=1:iter_num
                 
                 % update anchor points
 
-                s = 2 * LC * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
-                base = -s * sum(weight.*y_anchor(u,:));
-                base = base + repmat(y_anchor(u,:)',1,p).* s*sum(weight);
-                anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate / 100/ (idx + t0) * ((err(u)-1)*y(u)* base/(sum(weight).^2));
+%                 s = 2 * LC * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
+%                 base = -s * sum(weight.*y_anchor(u,:));
+%                 base = base + repmat(y_anchor(u,:)',1,p).* s*sum(weight);
+%                 anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate / 100 / (idx + t0) * ((err(u)-1)*y(u)* base/(sum(weight).^2));
 
             end
 
