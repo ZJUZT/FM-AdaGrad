@@ -8,7 +8,7 @@ class_num = max(train_Y);
 iter_num = 1 ;
 factors_num = 10;
 
-learning_rate = 1e3;
+learning_rate = 1e5;
 t0 = 1e5;
 skip = 1e3 ; 
 
@@ -16,13 +16,13 @@ count = skip;
 
 % locally linear
 % anchor points
-anchors_num = 5 ;
+anchors_num = 50 ;
 
 
 epoch = 10;
 
 % knn
-nearest_neighbor = 2  ;
+nearest_neighbor = 5;
 beta = 1;
 
 bcon_llfm = zeros(1,iter_num);
