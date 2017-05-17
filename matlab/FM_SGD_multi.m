@@ -10,7 +10,7 @@ y_min = min(train_Y);
 iter_num = 1;
 
 % ml 100k
-learning_rate = 5e3;
+learning_rate = 1e4;
 t0 = 1e5;
 skip = 1e1;
 
@@ -27,6 +27,11 @@ accuracy_fm = zeros(iter_num, epoch);
 
 for i=1:iter_num
     
+    % SGD
+    re_idx = randperm(num_sample);
+    X_train = train_X(re_idx,:);
+    Y_train = train_Y(re_idx);
+    
     tic;
     
     w0 = zeros(class_num, 1);
@@ -35,11 +40,6 @@ for i=1:iter_num
     
     mse_fm_sgd = zeros(1,num_sample);
     loss = zeros(1,epoch*num_sample);
-    
-    % SGD
-    re_idx = randperm(num_sample);
-    X_train = train_X(re_idx,:);
-    Y_train = train_Y(re_idx);
 
     for t=1:epoch
         
