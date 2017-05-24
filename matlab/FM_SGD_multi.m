@@ -7,17 +7,22 @@ y_max = max(train_Y);
 y_min = min(train_Y);
 
 % parameters
-iter_num = 1;
+iter_num = 5;
 
-% letter
+% % letter
 % learning_rate = 1e4;
 % t0 = 1e5;
-% skip = 1e1;
+% skip = 1e3;
 
-% mnist
-learning_rate = 1e3;
+% MNIST
+learning_rate = 1e2;
 t0 = 1e5;
 skip = 1e3;
+
+% mnist
+% learning_rate = 1e3;
+% t0 = 1e5;
+% skip = 1e3;
 
 
 count = skip;
@@ -117,7 +122,7 @@ for i=1:iter_num
     
     for k=1:num_sample_test
 
-        if mod(k,1e4)==0
+        if mod(k,1e3)==0
             toc;
             tic;
             fprintf('%d epoch(validation)---processing %dth sample\n',t, k);
@@ -168,7 +173,7 @@ grid on;
 hold on;  
 
 %%
-plot(rmse_fm_test ,'k--o','DisplayName','FM');
+plot(rmse_fm_train(1,:),'k--o','DisplayName','FM');
 legend('-DynamicLegend');
 % title('Learning Curve on Test Dataset')
 hold on;

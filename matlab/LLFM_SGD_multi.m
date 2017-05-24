@@ -5,10 +5,16 @@ class_num = max(train_Y);
 [num_sample, p] = size(train_X);
 
 % parameters  
-iter_num = 1 ;
+iter_num = 5 ;
 factors_num = 10;
 
-learning_rate = 1e5;
+%LETTER
+% learning_rate = 1e5;
+% t0 = 1e5;
+% skip = 1e3 ; 
+
+% MNIST
+learning_rate = 1e3;
 t0 = 1e5;
 skip = 1e3 ; 
 
@@ -16,7 +22,7 @@ count = skip;
 
 % locally linear
 % anchor points
-anchors_num = 10 ;
+anchors_num = 50 ;
 
 
 epoch = 10;
@@ -60,7 +66,7 @@ for i=1:iter_num
     
     for t=1:epoch
         
-        for j=1:num_sample
+        for j=1:1000
             if mod(j,1e3)==0
                 toc;
                 tic;
@@ -205,7 +211,7 @@ grid on;
 hold on;
 
 %%
-plot(rmse_llfm_test,'g--+','DisplayName','LLFM-DO');
+plot(rmse_llfm_train(1,:),'g--+','DisplayName','LLFM-DO');
 legend('-DynamicLegend');
 hold on;
 % plot(rmse_llfm_test,'DisplayName','LLFM\_Test');

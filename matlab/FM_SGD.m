@@ -23,21 +23,31 @@ y_max = max(train_Y);
 y_min = min(train_Y);
 
 % parameters
-iter_num = 1;
+iter_num = 5;
 % ml 100k
 % learning_rate = 2e3;
 % t0 = 1e4;
 % skip = 1e3;
 
 % ijcnn
-% learning_rate = 2e3;
+% learning_rate = 1e4;
 % t0 = 1e5;
-% skip = 1e1;
+% skip = 1e3;
+
+% magic04
+% learning_rate = 1e4;
+% t0 = 1e5;
+% skip = 1e3;
+
+% covtype
+learning_rate = 1e4;
+t0 = 1e5;
+skip = 1e3;
 
 % ml 100k
-learning_rate = 5e3;
-t0 = 1e5;
-skip = 1e1;
+% learning_rate = 5e3;
+% t0 = 1e5;
+% skip = 1e1;
 
 % learning_rate = 1e-2;
 % reg = 1e-4;
@@ -66,7 +76,7 @@ factors_num = 10;
 
 
   
-epoch = 10;
+epoch = 15;
 
 % accelerate the learning process
 % momentum = 0.9;
@@ -244,12 +254,11 @@ for i=1:iter_num
     fprintf('validating\n');
     mse = 0.0;
     correct_num = 0;
-%     [num_sample_test, ~] = size(test_X);
-    num_sample_test = 60000;
+    [num_sample_test, ~] = size(test_X);
     for k=1:num_sample_test
 %         X = test_X(k,:);
 %         y = test_Y(k,:);
-        if mod(k,1e4)==0
+        if mod(k,1e3)==0
             toc;
             tic;
             fprintf('%d epoch(validation)---processing %dth sample\n',i, k);
@@ -305,6 +314,7 @@ for i=1:iter_num
     
     fprintf('validation done\n');
     toc;
+    fprintf('%d iter(%d epoch)---loss: %f\n', i,t,rmse_fm_test(i, t));
     end
 end
 
@@ -322,14 +332,14 @@ grid on;
 hold on;  
 
 %%
-plot(rmse_fm_test ,'k--o','DisplayName','FM');
+plot(rmse_fm_test(1,:) ,'k--o','DisplayName','FM');
 legend('-DynamicLegend');
 % title('Learning Curve on Test Dataset')
 hold on;
 % plot(rmse_fm_test,'DisplayName','FM\_Test');  
 % legend('-DynamicLegend');
 xlabel('epoch');
-ylabel('RMSE');
+ylabel('logloss');
 % legend('FM_Train','FM_Test');
 % title('FM\_SGD');
 grid on;

@@ -6,12 +6,17 @@ class_num = max(train_Y);
 
 
 % parameters 
-iter_num = 1;
+iter_num = 5;
 
-% ml 100k
-learning_rate = 1e5;
+% LETTER
+% learning_rate = 1e5;
+% t0 = 1e5;
+% skip = 1e2;
+
+% MNIST 
+learning_rate = 1e3;
 t0 = 1e5;
-skip = 1e3;
+skip = 1e2;
  
 count = skip;
 
@@ -26,7 +31,7 @@ factors_num = 10;
 % Lipschitz to noise ratio
 % control the number of neighbours
 
-LC = 0.6;
+LC = 0.2;
 rmse_dadk_llfm_test = zeros(iter_num, epoch); 
 rmse_dadk_llfm_train = zeros(iter_num, epoch); 
 
@@ -59,7 +64,7 @@ for i=1:iter_num
 
     % get anchor points
     fprintf('Start K-means...\n');
-    [~, anchors, ~, SD, ~] = litekmeans(train_X, anchors_num, 'Replicates', 10);
+    [~, anchors, ~, SD, ~] = litekmeans(train_X, anchors_num);
 
     fprintf('K-means done..\n');
     
@@ -161,7 +166,7 @@ for i=1:iter_num
                 s = 2 * LC * (repmat(X, nearest_neighbor, 1) - anchors(anchor_idx, :));
                 base = -s * sum(weight.*y_anchor(u,:));
                 base = base + repmat(y_anchor(u,:)',1,p).* s*sum(weight);
-                anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate / 100 / (idx + t0) * ((err(u)-1)*y(u)* base/(sum(weight).^2));
+                anchors(anchor_idx,:) = anchors(anchor_idx,:) - learning_rate  / (idx + t0) * ((err(u)-1)*y(u)* base/(sum(weight).^2));
 
             end
 
@@ -254,7 +259,7 @@ hold on;
 grid on;
 
 %%
-plot(rmse_dadk_llfm_test,'r--x', 'DisplayName','LLFM-JO');
+plot(rmse_dadk_llfm_train(1,:),'r--x', 'DisplayName','LLFM-JO');
 legend('-DynamicLegend');
 hold on;
 % plot(rmse_dadk_llfm_test,'DisplayName','DKDKLLFM\_Test');
